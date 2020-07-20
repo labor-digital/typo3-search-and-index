@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><!--
+  ~ Copyright 2020 LABOR.digital
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  ~
+  ~ Last modified: 2020.07.16 at 14:59
+  -->
+
+<xliff version="1.0">
+    <file source-language="en" datatype="plaintext" original="messages" date="2020-01-31T23:48:37Z" product-name="backend15192137743865">
+        <header/>
+        <body>
+            <trans-unit id="indexerTaskTitle">
+                <source>Search and Index - Indexer</source>
+            </trans-unit>
+            <trans-unit id="indexerTaskDesc">
+                <source>Executes the indexer to populate the search index</source>
+            </trans-unit>
+            <trans-unit id="searchField">
+                <source>Search field</source>
+            </trans-unit>
+            <trans-unit id="searchFieldDesc">
+                <source>The frontend element to enter a search query</source>
+            </trans-unit>
+            <trans-unit id="t.pages.index">
+                <source>Include the page in the search (and also the sitemap)</source>
+            </trans-unit>
+            <trans-unit id="t.pages.keywords">
+                <source>Additional Search-Keywords for this page. (Won't be visible for the user)</source>
+            </trans-unit>
+            <trans-unit id="t.pages.priority">
+                <source>Custom priority modifier for this page. (Range: -100 to 100)</source>
+            </trans-unit>
+            <trans-unit id="t.pages.sitemap">
+                <source>Include the page in the sitemap.xml</source>
+            </trans-unit>
+            <trans-unit id="t.pages.tab.sai">
+                <source>Search and Sitemap</source>
+            </trans-unit>
+        </body>
+    </file>
+</xliff>
