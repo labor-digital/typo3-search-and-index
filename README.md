@@ -17,7 +17,7 @@ Based on the index you can also generate a complete xml sitemap.
 Install this package using composer:
 
 ```
-composer require labor-digital/typo3-frontend-api
+composer require labor-digital/typo3-search-and-index
 ```
 
 After that, you can activate the extension in the Extensions-Manager of your TYPO3 installation
