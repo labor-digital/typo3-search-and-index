@@ -23,7 +23,7 @@ declare(strict_types=1);
 namespace LaborDigital\T3SAI\Event;
 
 
-use LaborDigital\Typo3FrontendApi\JsonApi\Controller\CollectionControllerContext;
+use LaborDigital\Typo3FrontendApi\JsonApi\Controller\ResourceControllerContext;
 use Psr\Http\Message\ServerRequestInterface;
 
 /**
@@ -42,39 +42,39 @@ class SearchResourceQueryFilterEvent
      * @var \Psr\Http\Message\ServerRequestInterface
      */
     protected $request;
-    
+
     /**
      * The resource controller context for the request
      *
-     * @var \LaborDigital\Typo3FrontendApi\JsonApi\Controller\CollectionControllerContext
+     * @var ResourceControllerContext
      */
     protected $context;
-    
+
     /**
      * The list of parsed options of the request
      *
      * @var array
      */
     protected $options;
-    
+
     /**
      * The search query to be executed
      *
      * @var string
      */
     protected $query;
-    
+
     /**
      * SearchResourceQueryFilterEvent constructor.
      *
-     * @param   \Psr\Http\Message\ServerRequestInterface                                       $request
-     * @param   \LaborDigital\Typo3FrontendApi\JsonApi\Controller\CollectionControllerContext  $context
-     * @param   array                                                                          $options
-     * @param   string                                                                         $query
+     * @param   \Psr\Http\Message\ServerRequestInterface                                     $request
+     * @param   \LaborDigital\Typo3FrontendApi\JsonApi\Controller\ResourceControllerContext  $context
+     * @param   array                                                                        $options
+     * @param   string                                                                       $query
      */
     public function __construct(
         ServerRequestInterface $request,
-        CollectionControllerContext $context,
+        ResourceControllerContext $context,
         array $options,
         string $query
     ) {
@@ -83,7 +83,7 @@ class SearchResourceQueryFilterEvent
         $this->options = $options;
         $this->query   = $query;
     }
-    
+
     /**
      * Returns the request which was executed to reach the search endpoint
      *
@@ -93,17 +93,17 @@ class SearchResourceQueryFilterEvent
     {
         return $this->request;
     }
-    
+
     /**
      * Returns the resource controller context for the request
      *
-     * @return \LaborDigital\Typo3FrontendApi\JsonApi\Controller\CollectionControllerContext
+     * @return ResourceControllerContext
      */
-    public function getContext(): CollectionControllerContext
+    public function getContext(): ResourceControllerContext
     {
         return $this->context;
     }
-    
+
     /**
      * Returns the list of parsed options of the request
      *
@@ -113,7 +113,7 @@ class SearchResourceQueryFilterEvent
     {
         return $this->options;
     }
-    
+
     /**
      * Allows you to update the list of options before the search is started
      *
@@ -124,10 +124,10 @@ class SearchResourceQueryFilterEvent
     public function setOptions(array $options): SearchResourceQueryFilterEvent
     {
         $this->options = $options;
-        
+
         return $this;
     }
-    
+
     /**
      * Returns the given search query to be executed
      *
@@ -137,7 +137,7 @@ class SearchResourceQueryFilterEvent
     {
         return $this->query;
     }
-    
+
     /**
      * Updates the given search query to be executed
      *
@@ -148,9 +148,9 @@ class SearchResourceQueryFilterEvent
     public function setQuery(string $query): SearchResourceQueryFilterEvent
     {
         $this->query = $query;
-        
+
         return $this;
     }
-    
-    
+
+
 }

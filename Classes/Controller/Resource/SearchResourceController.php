@@ -58,7 +58,7 @@ class SearchResourceController extends AbstractResourceController
      * @var \LaborDigital\T3SAI\Domain\Repository\SearchRepository
      */
     protected $searchRepository;
-    
+
     /**
      * @inheritDoc
      */
@@ -66,7 +66,7 @@ class SearchResourceController extends AbstractResourceController
     {
         $this->searchRepository = $searchRepository;
     }
-    
+
     /**
      * @inheritDoc
      */
@@ -83,8 +83,9 @@ class SearchResourceController extends AbstractResourceController
             'contentMatch',
             'metaData',
         ]);
+        $configurator->addAdditionalRoute('/count', 'countAction');
     }
-    
+
     /**
      * @inheritDoc
      */
@@ -92,59 +93,95 @@ class SearchResourceController extends AbstractResourceController
     {
         throw new NotImplementedException();
     }
-    
+
     /**
      * @inheritDoc
      */
     public function collectionAction(ServerRequestInterface $request, CollectionControllerContext $context)
     {
-        $args = $request->getQueryParams();
-        if (! isset($args['query'])) {
+        [$query, $options] = $this->prepareArguments($request, $context);
+
+        if (! empty($query)) {
+            return $this->Container()->getWithoutDi(
+                SearchResultPaginator::class, [
+                    $query,
+                    $options,
+                    $this->searchRepository,
+                    function (array $result) use ($request, $context, $options, $query): array {
+                        return $this->EventBus()->dispatch((new SearchResourcePostProcessorEvent(
+                            $request, $context, $options, $query, $result
+                        )))->getResult();
+                    },
+                ]
+            );
+        }
+
+        return $this->EventBus()->dispatch((new SearchResourcePostProcessorEvent(
+            $request, $context, $options, $query, []
+        )))->getResult();
+    }
+
+    /**
+     * Has the same interface as the normal collection action but returns the count of all results
+     * based on their tag
+     *
+     * @param   \Psr\Http\Message\ServerRequestInterface                                     $request
+     * @param   \LaborDigital\Typo3FrontendApi\JsonApi\Controller\ResourceControllerContext  $context
+     *
+     * @return array
+     */
+    public function countAction(ServerRequestInterface $request, ResourceControllerContext $context): array
+    {
+        [$query, $options] = $this->prepareArguments($request, $context);
+
+        return $this->searchRepository->getCountForQuery($query, $options);
+    }
+
+    /**
+     * Receives the server request and the context to prepare the options and the query string
+     * or the used repository methods
+     *
+     * @param   \Psr\Http\Message\ServerRequestInterface                                     $request
+     * @param   \LaborDigital\Typo3FrontendApi\JsonApi\Controller\ResourceControllerContext  $context
+     *
+     * @return array
+     * @throws \League\Route\Http\Exception\BadRequestException
+     */
+    protected function prepareArguments(ServerRequestInterface $request, ResourceControllerContext $context): array
+    {
+        $queryParams = $request->getQueryParams();
+        if (! isset($queryParams['query'])) {
             throw new BadRequestException('The query parameter is missing!');
         }
-        
+
         // Prepare the query
-        $query = urldecode((string)$args['query']);
-        
+        $query = urldecode((string)$queryParams['query']);
+
         // Use the query parameters to configure the repository
         $options = [];
-        if (! empty($args['L'])) {
-            $options['language'] = (int)$args['L'];
+        if (! empty($queryParams['L'])) {
+            $options['language'] = (int)$queryParams['L'];
         }
-        if (! empty($args['tags'])) {
-            $options['tags'] = Arrays::makeFromStringList($args['tags']);
+        if (! empty($queryParams['tags'])) {
+            $options['tags'] = Arrays::makeFromStringList($queryParams['tags']);
         }
-        if (! empty($args['page']) && ! empty($args['page']['size'])) {
-            $options['limit'] = max(1, min(100, (int)$args['page']['size']));
+        if (isset($queryParams['maxTagItems'])) {
+            $options['maxTagItems'] = max(1, min(5000, (int)$queryParams['maxTagItems']));
         }
-        if (! empty($args['contentMatchLength'])) {
-            $options['contentMatchLength'] = max(10, min(10000, (int)$args['contentMatchLength']));
+        if (! empty($queryParams['contentMatchLength'])) {
+            $options['contentMatchLength'] = max(10, min(10000, (int)$queryParams['contentMatchLength']));
         }
-        if (! empty($args['domain'])) {
-            $options['domain'] = $args['domain'];
+        if (! empty($queryParams['domain'])) {
+            $options['domain'] = $queryParams['domain'];
         }
-        
+
         // Allow filtering
         $this->EventBus()->dispatch(($e = new SearchResourceQueryFilterEvent(
             $request, $context, $options, $query
         )));
         $query   = $e->getQuery();
         $options = $e->getOptions();
-        
-        // Execute the query
-        if (! empty($query)) {
-            $result = $this->searchRepository->findByQuery($query, $options);
-        } else {
-            $result = [];
-        }
-        
-        // Allow filtering
-        $this->EventBus()->dispatch(($e = new SearchResourcePostProcessorEvent(
-            $request, $context, $options, $query, $result
-        )));
-        
-        // Done
-        return $e->getResult();
+
+        return [$query, $options];
     }
-    
 }

@@ -24,6 +24,7 @@ namespace LaborDigital\T3SAI\Util;
 
 
 use LaborDigital\T3SAI\Domain\Repository\SearchRepository;
+use Neunerlei\Arrays\Arrays;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 use TYPO3\CMS\Core\SingletonInterface;
 
@@ -35,35 +36,50 @@ class SearchQueryBuilder implements SingletonInterface
      * @var array
      */
     protected $options;
-    
+
     /**
      * The current query builder instance
      *
      * @var QueryBuilder
      */
     protected $qb;
-    
+
     /**
      * The database connection
      *
      * @var \TYPO3\CMS\Core\Database\Connection
      */
     protected $connection;
-    
+
     /**
      * True if we are working with a mysql / maria db
      *
      * @var bool
      */
     protected $isMysql = false;
-    
+
     /**
      * True if we are working with a sql server hell-hole...
      *
      * @var bool
      */
     protected $isSqlServer = false;
-    
+
+    /**
+     * True if the query should result the count of matched objects instead of the objects themselves
+     *
+     * @var bool
+     */
+    protected $isCountQuery = false;
+
+    /**
+     * True if mysql is used as database
+     * and the old style row number generation should be used (using @order)
+     *
+     * @var bool
+     */
+    protected $useOldRowNumberGeneration = false;
+
     /**
      * Builds a list of SQL queries that must be executed in a single transaction.
      * The last query returns the search results
@@ -78,15 +94,8 @@ class SearchQueryBuilder implements SingletonInterface
      */
     public function buildQueries(QueryBuilder $queryBuilder, string $searchString, array $searchWords, array $options = []): array
     {
-        // Prepare the builder instance
-        $this->options     = $options;
-        $this->qb          = $queryBuilder;
-        $this->connection  = $queryBuilder->getConnection();
-        $platformName      = $this->connection->getDriver()->getDatabasePlatform()->getName();
-        $this->isMysql     = stripos('mysql', $platformName) !== false || stripos('maria', $platformName) !== false;
-        $this->isSqlServer = stripos('sqlserver', $platformName) !== false || stripos('mssql', $platformName) !== false;
-        
-        // Build the queries
+        $this->initialize($queryBuilder, $options);
+
         $queries = [];
         if (! $this->isSqlServer) {
             $queries[] = 'set @num := 0, @order := 0, @type := \'\';';
@@ -97,10 +106,63 @@ class SearchQueryBuilder implements SingletonInterface
                 $this->buildWordListPartial($searchWords)
             )
         );
-        
+
         return $queries;
     }
-    
+
+    /**
+     * Builds a list of SQL queries that must be executed in a single transaction.
+     * The last query returns the count of all tags that got results
+     *
+     * @param   QueryBuilder  $queryBuilder  The query builder object for the NODE table
+     * @param   string        $searchString  The complete search string given
+     * @param   array         $searchWords   The searchString split up into an array of words
+     * @param   array         $options       The options to use -> there is no validation in here,
+     *                                       {@see SearchRepository::getCountForQuery()} for the possible options
+     *
+     * @return array
+     */
+    public function buildCountQueries(QueryBuilder $queryBuilder, string $searchString, array $searchWords, array $options = []): array
+    {
+        $this->initialize($queryBuilder, $options);
+        $this->isCountQuery = true;
+
+        $queries = [];
+        if (! $this->isSqlServer) {
+            $queries[] = 'set @num := 0, @order := 0, @type := \'\';';
+        }
+        $queries[] = $this->buildCountPartial(
+            $this->buildSortingPartial(
+                $this->buildNodePartial(
+                    $searchString,
+                    $this->buildWordListPartial($searchWords)
+                )
+            )
+        );
+
+        return $queries;
+    }
+
+    protected function initialize(QueryBuilder $queryBuilder, array $options): void
+    {
+        $this->isCountQuery = false;
+        $this->options      = $options;
+        $this->qb           = $queryBuilder;
+        $this->connection   = $queryBuilder->getConnection();
+        $platformName       = $this->connection->getDriver()->getDatabasePlatform()->getName();
+        $this->isMysql      = stripos($platformName, 'mysql') !== false || stripos($platformName, 'maria') !== false;
+        $this->isSqlServer  = stripos($platformName, 'sqlserver') !== false || stripos($platformName, 'mssql') !== false;
+        if ($this->isMysql) {
+            $version = $this->connection->query('SHOW VARIABLES LIKE "version";')->fetchAll();
+            $version = (is_array($version) ? Arrays::getPath($version, '0.Value') : null) ?? '5.6.0';
+            preg_match('~\d+\.\d+\.\d+~', (string)$version, $m);
+            $version = empty($m[0]) ? '5.6.0' : $m[0];
+            if (version_compare($version, '8.0.0', '>=')) {
+                $this->useOldRowNumberGeneration = false;
+            }
+        }
+    }
+
     /**
      * Builds the "UNION" partial, for all given search words
      *
@@ -118,10 +180,10 @@ class SearchQueryBuilder implements SingletonInterface
                 $wordPartials[] = $this->buildSingleWordPartial($searchWord, true);
             }
         }
-        
+
         return implode(PHP_EOL . ' UNION ' . PHP_EOL, $wordPartials);
     }
-    
+
     /**
      * Builds the select query for a single word
      *
@@ -134,7 +196,7 @@ class SearchQueryBuilder implements SingletonInterface
     {
         $wordLength      = strlen($searchWord);
         $wordLengthBonus = $wordLength > 6 ? $wordLength * 2 : 0;
-        
+
         // Check on how to handle the query
         if ($fuzzy) {
             // Handle a fuzzy query
@@ -148,7 +210,7 @@ class SearchQueryBuilder implements SingletonInterface
                 $this->qb->expr()->like('word', $this->q(' ' . $searchWord . '%'))
             );
         }
-        
+
         // Select the correct length function
         $lengthFunc = 'LENGTH';
         if ($this->isMysql) {
@@ -156,7 +218,7 @@ class SearchQueryBuilder implements SingletonInterface
         } elseif ($this->isSqlServer) {
             $lengthFunc = 'LEN';
         }
-        
+
         // Select all word rows which match the given searchWord somehow
         return 'SELECT ' .
                $this->qi('id') . ' AS ' . $this->q('word_id') . ', ' .
@@ -172,7 +234,7 @@ class SearchQueryBuilder implements SingletonInterface
                ' AND ' . $this->qi('lang') . ' = ' . $this->q($this->options['language']) .
                ' AND ' . $this->qi('active') . ' = 1';
     }
-    
+
     /**
      * Builds the select query for a index node based on the given search string
      *
@@ -190,7 +252,7 @@ class SearchQueryBuilder implements SingletonInterface
                      $wordListPartial . PHP_EOL .
                      ' ) AS ' . $this->qi('r') .
                      ' GROUP BY ' . $this->qi('r') . '.' . $this->qi('word_id');
-        
+
         // Build the outer query
         return 'SELECT *, ' .
                // We can only use the natural language matcher in a mysql enfiroment
@@ -208,9 +270,9 @@ class SearchQueryBuilder implements SingletonInterface
                ' WHERE ' . $this->qi('lang') . ' = ' . $this->q($this->options['language']) .
                ' AND ' . $this->qi('active') . ' = 1' .
                ($this->isSqlServer ? '' : ' ORDER BY ' . $this->qi('prio') . ' DESC');
-        
+
     }
-    
+
     /**
      * Builds the outer query to sort and limit the results
      *
@@ -223,21 +285,19 @@ class SearchQueryBuilder implements SingletonInterface
         // This query creates a new column called "ordering", so we can re-sort the result for our tag based limit
         // and then recreate the original ordering by priority
         $orderQuery = 'SELECT ' .
-                      (
-                      $this->isSqlServer
-                          // SQL SERVER
-                          ? 'TOP 500 *, ' .
-                            'ROW_NUMBER() OVER(PARTITION BY ' . $this->qi('tag') . ' ORDER BY ' . $this->qi('r') . '.' .
-                            $this->qi('prio') . ' DESC) AS ' . $this->qi('row_number') . ',' .
-                            'ROW_NUMBER() OVER(ORDER BY ' . $this->qi('r') . '.' . $this->qi('prio') . ' DESC) AS ' . $this->qi('ordering')
-                          // MYSQL or everything else
+                      ($this->isSqlServer || ($this->isMysql && ! $this->useOldRowNumberGeneration)
+                          ? (
+                              ($this->isSqlServer ? 'TOP 500 *, ' : '*, ') .
+                              'ROW_NUMBER() OVER(PARTITION BY ' . $this->qi('tag') . ' ORDER BY ' . $this->qi('r') . '.' .
+                              $this->qi('prio') . ' DESC) AS ' . $this->qi('row_number') . ',' .
+                              'ROW_NUMBER() OVER(ORDER BY ' . $this->qi('r') . '.' . $this->qi('prio') . ' DESC) AS ' . $this->qi('ordering')
+                          )
                           : '*, @order := @order + 1 AS ' . $this->qi('ordering')
                       ) .
                       ' FROM ( ' . PHP_EOL .
                       $nodePartial . PHP_EOL .
                       ' ) AS ' . $this->qi('r');
-        
-        
+
         // Build the tag list
         $tagWhere = '';
         if (! empty($this->options['tags'])) {
@@ -247,10 +307,10 @@ class SearchQueryBuilder implements SingletonInterface
             }
             $tagWhere = ' AND ' . $this->qi('r') . '.' . $this->qi('tag') . ' IN(' . implode(',', $tags) . ')';
         }
-        
+
         // This query creates a new column called "row_number" which is used by the parent query's HAVING to limit
         // the result based on n rows by tag.
-        if ($this->isSqlServer) {
+        if (! $this->useOldRowNumberGeneration) {
             $rowNumberQuery = $orderQuery;
         } else {
             $rowNumberQuery = 'SELECT *, ' .
@@ -260,27 +320,53 @@ class SearchQueryBuilder implements SingletonInterface
                               $orderQuery . PHP_EOL .
                               ') AS ' . $this->qi('r');
         }
-        
+
         // Add the tag and domain constraint
         $rowNumberQuery .= ' WHERE 1=1 ' . $tagWhere . ' AND ' . $this->qi('domain') . ' = ' . $this->q($this->options['domain']);
-        if (! $this->isSqlServer) {
+        if ($this->useOldRowNumberGeneration) {
             $rowNumberQuery .= ' ORDER BY ' . $this->qi('r') . '.' . $this->qi('tag');
         }
-        
+
         // Build the final query to limit the result
-        return 'SELECT * ' .
-               ($this->isSqlServer ? '' : ', ' . $this->qi('r') . '.' . $this->qi('row_number')) .
-               ' FROM (' . PHP_EOL .
-               $rowNumberQuery . PHP_EOL .
-               ') AS ' . $this->qi('r') .
-               ($this->isSqlServer ? ' WHERE ' : ' HAVING ') .
-               $this->qi('r') . '.' . $this->qi('row_number') . ' <= ' . $this->q($this->options['limit']) .
-               ' ' . PHP_EOL .
-               ((string)$this->options['additionalLimiterQuery']) .
-               ' ORDER BY ' . $this->qi('ordering') . ' ASC, ' . $this->qi('r') . '.' . $this->qi('tag') . ' ASC';
-        
+        $q = 'SELECT * FROM (' . PHP_EOL .
+             $rowNumberQuery . PHP_EOL .
+             ') AS ' . $this->qi('r');
+
+        if ($this->options['maxTagItems'] !== 0) {
+            $q .= ($this->isSqlServer ? ' WHERE ' : ' HAVING ') .
+                  $this->qi('r') . '.' . $this->qi('row_number') . ' <= ' . $this->q($this->options['maxTagItems']);
+        }
+
+        if (! empty($this->options['additionalLimiterQuery'])) {
+            $q .= PHP_EOL . $this->options['additionalLimiterQuery'];
+        }
+
+        $q .= ' ' . PHP_EOL . 'ORDER BY ' . $this->qi('ordering') . ' ASC, ' . $this->qi('r') . '.' . $this->qi('tag') . ' ASC';
+
+        if (! $this->isCountQuery && $this->options['maxItems'] !== 0) {
+            $q .= PHP_EOL . 'LIMIT ' . abs((int)$this->options['maxItems']);
+            if ($this->options['offset'] !== 0) {
+                $q .= PHP_EOL . 'OFFSET ' . abs((int)$this->options['offset']);
+            }
+        }
+
+        return $q;
     }
-    
+
+    /**
+     * Wraps the sorting partial to create a count of all existing tags
+     *
+     * @param   string  $sortingPartial
+     *
+     * @return string
+     */
+    protected function buildCountPartial(string $sortingPartial): string
+    {
+        return 'SELECT ' . $this->qi('tag') . ', COUNT(*) AS ' . $this->qi('count') . ' FROM (' . PHP_EOL .
+               $sortingPartial . PHP_EOL .
+               ') AS ' . $this->qi('r') . ' GROUP BY ' . $this->qi('r') . '.' . $this->qi('tag');
+    }
+
     /**
      * Shortcut to quote a value
      *
@@ -292,7 +378,7 @@ class SearchQueryBuilder implements SingletonInterface
     {
         return $this->connection->quote($value);
     }
-    
+
     /**
      * Shortcut to quote a single database identifier
      *
