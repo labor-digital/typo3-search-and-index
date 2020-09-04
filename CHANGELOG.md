@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [9.2.1](https://github.com/labor-digital/typo3-search-and-index/compare/v9.2.0...v9.2.1) (2020-09-04)
+
+
+### Bug Fixes
+
+* **SearchQueryBuilder:** remove @ from $useOldRowNumberGeneration doc block to prevent missing annotation exception ([0bc0be4](https://github.com/labor-digital/typo3-search-and-index/commit/0bc0be410b890e046b41921a85dfad47df9fb8c4))
+
 ## [9.2.0](https://github.com/labor-digital/typo3-search-and-index/compare/v9.1.2...v9.2.0) (2020-09-03)
 
 
