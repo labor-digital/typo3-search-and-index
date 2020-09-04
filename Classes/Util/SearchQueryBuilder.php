@@ -74,7 +74,7 @@ class SearchQueryBuilder implements SingletonInterface
 
     /**
      * True if mysql is used as database
-     * and the old style row number generation should be used (using @order)
+     * and the old style row number generation should be used (using (at)order)
      *
      * @var bool
      */
