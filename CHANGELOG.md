@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [9.2.2](https://github.com/labor-digital/typo3-search-and-index/compare/v9.2.1...v9.2.2) (2020-09-08)
+
+
+### Bug Fixes
+
+* **SearchRepository:** calculate '[@total](https://github.com/total)' correctly for empty results ([4433eb0](https://github.com/labor-digital/typo3-search-and-index/commit/4433eb032fb94d22f99fbb1ae39b034531091147))
+
 ### [9.2.1](https://github.com/labor-digital/typo3-search-and-index/compare/v9.2.0...v9.2.1) (2020-09-04)
 
 
