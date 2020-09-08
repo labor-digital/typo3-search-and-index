@@ -266,7 +266,7 @@ class SearchRepository
                                ->buildCountQueries($queryBuilder, $searchString, $searchWords, $options);
         $result         = $this->executeQueries($queries, $queryBuilder->getConnection());
         $list           = Arrays::getList($result, ['count'], 'tag');
-        $list['@total'] = array_sum(array_values($list));
+        $list['@total'] = is_array($list) ? array_sum(array_values($list)) : 0;
 
         return $list;
     }
