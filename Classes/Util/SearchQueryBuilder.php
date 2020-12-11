@@ -269,6 +269,7 @@ class SearchQueryBuilder implements SingletonInterface
                ') ' . $this->qi('w') . ' ON ' . $this->qi('w') . '.' . $this->qi('word_id') . ' = ' . $this->qi('n') . '.' . $this->qi('id') .
                ' WHERE ' . $this->qi('lang') . ' = ' . $this->q($this->options['language']) .
                ' AND ' . $this->qi('active') . ' = 1' .
+               ' AND ' . $this->qi('add_to_search') . ' = 1' .
                ($this->isSqlServer ? '' : ' ORDER BY ' . $this->qi('prio') . ' DESC');
 
     }

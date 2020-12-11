@@ -13,6 +13,7 @@ CREATE TABLE `tx_search_and_index_nodes` (
 	`set_keywords`   text          NOT NULL,
 	`priority`       float   DEFAULT '0'    NOT NULL,
 	`add_to_sitemap` tinyint(1)   DEFAULT '0' NOT NULL,
+	`add_to_search` tinyint(1)   DEFAULT '0' NOT NULL,
 	`timestamp`      datetime     DEFAULT NULL,
 	`domain`         varchar(256)  DEFAULT '' NOT NULL,
 	`active` tinyint(1) DEFAULT '0' NOT NULL,
