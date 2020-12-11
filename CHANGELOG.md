@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [9.3.0](https://github.com/labor-digital/typo3-search-and-index/compare/v9.2.2...v9.3.0) (2020-12-11)
+
+
+### Features
+
+* implement option to disable nodes in the search index ([858fc33](https://github.com/labor-digital/typo3-search-and-index/commit/858fc335346faab3603a213f8e0ff8f8f1dd1d71))
+
 ### [9.2.2](https://github.com/labor-digital/typo3-search-and-index/compare/v9.2.1...v9.2.2) (2020-09-08)
 
 
