@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [9.3.1](https://github.com/labor-digital/typo3-search-and-index/compare/v9.3.0...v9.3.1) (2021-01-11)
+
+
+### Bug Fixes
+
+* **SearchRepository:** fix issues with multi queries ([2f47690](https://github.com/labor-digital/typo3-search-and-index/commit/2f476903461afd02203b2ca464e7091fdc7e72b1))
+
 ## [9.3.0](https://github.com/labor-digital/typo3-search-and-index/compare/v9.2.2...v9.3.0) (2020-12-11)
 
 
