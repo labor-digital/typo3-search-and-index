@@ -356,12 +356,24 @@ class SearchRepository
     protected function executeQueries(array $queries, Connection $connection): ?array
     {
         $connection->beginTransaction();
+
         $lastStatement = null;
+        $result        = null;
+
         foreach ($queries as $query) {
-            $lastStatement = $connection->executeQuery($query)->fetchAll();
+            if ($lastStatement) {
+                $lastStatement->free();
+            }
+
+            $lastStatement = $connection->executeQuery($query);
         }
+
+        if ($lastStatement) {
+            $result = $lastStatement->fetchAllAssociative();
+        }
+
         $connection->commit();
 
-        return $lastStatement;
+        return $result;
     }
 }
