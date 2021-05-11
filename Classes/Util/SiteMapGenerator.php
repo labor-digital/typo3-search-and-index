@@ -28,11 +28,14 @@ use TYPO3\CMS\Core\SingletonInterface;
 
 class SiteMapGenerator implements SingletonInterface
 {
+    public const IMAGE_NS = 'http://www.google.com/schemas/sitemap-image/1.1';
+    public const ROOT_NS  = 'http://www.sitemaps.org/schemas/sitemap/0.9';
+
     /**
      * @var \LaborDigital\Typo3BetterApi\Link\LinkService
      */
     protected $links;
-    
+
     /**
      * SiteMapGenerator constructor.
      *
@@ -42,7 +45,7 @@ class SiteMapGenerator implements SingletonInterface
     {
         $this->links = $links;
     }
-    
+
     /**
      * Expects to receive the result of SearchRepository::findSitemap()
      * Builds a valid xml sitemap as string and returns it
@@ -63,7 +66,7 @@ class SiteMapGenerator implements SingletonInterface
             'addChangeFreq' => false,
             'addPriority'   => false,
         ]);
-        
+
         // Check if we have images
         $hasImages = false;
         foreach ($structure as $row) {
@@ -73,27 +76,27 @@ class SiteMapGenerator implements SingletonInterface
             $hasImages = true;
             break;
         }
-        
+
         // Create the xml document
-        $xmlHeader = $hasImages ? ' xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"' : '';
-        $xmlHeader = '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"' .
-                     $xmlHeader . '></urlset>';
+        $xmlHeader = $hasImages ? ' xmlns:image="' . static::IMAGE_NS . '"' : '';
+        $xmlHeader = '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="' .
+                     static::ROOT_NS . '"' . $xmlHeader . '></urlset>';
         $xml       = simplexml_load_string($xmlHeader);
-        
+
         // Prepare url
         $baseUrl = $this->links->getHost();
-        
+
         // Loop through the structure
         foreach ($structure as $row) {
             // Calculate priority
             $priority = round(($row['priority'] + 100) / 200, 1);
-            
+
             // Merge the urls
             $url = ltrim($row['url'], '/');
             if (stripos($url, $baseUrl) !== 0) {
                 $url = $baseUrl . $url;
             }
-            
+
             // Calculate change frequency
             $frequency = 'daily';
             if ($priority <= 0) {
@@ -101,13 +104,13 @@ class SiteMapGenerator implements SingletonInterface
             } elseif ($priority < 0.3) {
                 $frequency = 'weekly';
             }
-            
+
             // Build date
             $date = (new DateTimy($row['timestamp']))->format('Y-m-d\TH:i:sP');
-            
+
             // Create new node
             $node = $xml->addChild('url');
-            $node->addChild('loc', htmlspecialchars($url));
+            $node->addChild('loc', htmlspecialchars($url, ENT_QUOTES | ENT_HTML5));
             $node->addChild('lastmod', $date);
             if ($options['addChangeFreq']) {
                 $node->addChild('changefreq', $frequency);
@@ -115,14 +118,18 @@ class SiteMapGenerator implements SingletonInterface
             if ($options['addPriority']) {
                 $node->addChild('priority', $priority);
             }
-            
+
             // Add image if required
             if (! empty($row['image'])) {
-                $n = $node->addChild('image:image');
-                $n->addChild('image:loc', $row['image']);
+                $n = $node->addChild('image', null, static::IMAGE_NS);
+                $n->addChild('loc', $row['image'], static::IMAGE_NS);
+
+                if (! empty($row['title'])) {
+                    $n->addChild('caption', htmlspecialchars($row['title'], ENT_QUOTES | ENT_HTML5), static::IMAGE_NS);
+                }
             }
         }
-        
+
         // Done
         return $xml->saveXML();
     }

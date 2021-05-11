@@ -126,7 +126,7 @@ class SearchRepository
                            'domain'           => $domain,
                        ])
                        ->withOrder('priority', 'desc')
-                       ->getAll(['url', 'priority', 'timestamp', 'image']);
+                       ->getAll(['url', 'priority', 'timestamp', 'image', 'title']);
 
         if (! is_array($result)) {
             $result = [];
