@@ -20,11 +20,11 @@
 declare(strict_types=1);
 
 
-namespace LaborDigital\T3SAI\Event;
+namespace LaborDigital\T3sai\Event;
 
 
-use LaborDigital\T3SAI\Indexer\IndexerContext;
-use LaborDigital\T3SAI\Indexer\Transformer\RecordTransformerInterface;
+use LaborDigital\T3sai\Core\Indexer\Queue\QueueRequest;
+use LaborDigital\T3sai\Search\Indexer\RecordIndexerInterface;
 
 class IndexerBeforeConversionEvent extends AbstractIndexerEvent
 {
@@ -35,23 +35,20 @@ class IndexerBeforeConversionEvent extends AbstractIndexerEvent
      */
     protected $elements;
     
-    /**
-     * @inheritDoc
-     */
-    public function __construct(IndexerContext $context, iterable $elements)
+    public function __construct(QueueRequest $request, iterable $elements)
     {
-        parent::__construct($context);
+        parent::__construct($request);
         $this->elements = $elements;
     }
     
     /**
      * Returns the indexer instance that should now start to convert the elements
      *
-     * @return \LaborDigital\T3SAI\Indexer\Transformer\RecordTransformerInterface
+     * @return \LaborDigital\T3sai\Search\Indexer\RecordIndexerInterface
      */
-    public function getTransformer(): RecordTransformerInterface
+    public function getIndexer(): RecordIndexerInterface
     {
-        return $this->context->getTransformer();
+        return $this->request->getRecordIndexer();
     }
     
     /**
@@ -69,7 +66,7 @@ class IndexerBeforeConversionEvent extends AbstractIndexerEvent
      *
      * @param   iterable  $elements
      *
-     * @return \LaborDigital\T3SAI\Event\IndexerBeforeConversionEvent
+     * @return \LaborDigital\T3sai\Event\IndexerBeforeConversionEvent
      */
     public function setElements(iterable $elements): IndexerBeforeConversionEvent
     {

@@ -36,7 +36,7 @@ declare(strict_types=1);
  * Last modified: 2019.03.24 at 20:46
  */
 
-namespace LaborDigital\T3SAI\Exception;
+namespace LaborDigital\T3sai\Exception;
 
 
 use Exception;

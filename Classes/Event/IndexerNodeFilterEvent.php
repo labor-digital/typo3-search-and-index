@@ -20,40 +20,40 @@
 declare(strict_types=1);
 
 
-namespace LaborDigital\T3SAI\Event;
+namespace LaborDigital\T3sai\Event;
 
 
-use LaborDigital\T3SAI\Indexer\IndexNode;
-use LaborDigital\T3SAI\Indexer\Transformer\RecordTransformerInterface;
+use LaborDigital\T3sai\Core\Indexer\Node\Node;
+use LaborDigital\T3sai\Search\Indexer\RecordIndexerInterface;
 
 /**
  * Class IndexerNodeFilterEvent
  *
  * Dispatched once for every node that was generated in the indexer.
- * Allows you to provide additional post processing after the transformer is finished
+ * Allows you to provide additional post-processing after the transformer is finished
  *
- * @package LaborDigital\T3SAI\Event
+ * @package LaborDigital\T3sai\Event
  */
 class IndexerNodeFilterEvent extends AbstractIndexerEvent
 {
     /**
      * Returns the indexer instance that should now start to convert the elements
      *
-     * @return \LaborDigital\T3SAI\Indexer\Transformer\RecordTransformerInterface
+     * @return \LaborDigital\T3sai\Search\Indexer\RecordIndexerInterface
      */
-    public function getTransformer(): RecordTransformerInterface
+    public function getTransformer(): RecordIndexerInterface
     {
-        return $this->context->getTransformer();
+        return $this->request->getRecordIndexer();
     }
     
     /**
      * Returns the index node to filter
      *
-     * @return \LaborDigital\T3SAI\Indexer\IndexNode
+     * @return \LaborDigital\T3sai\Core\Indexer\Node\Node
      */
-    public function getNode(): IndexNode
+    public function getNode(): Node
     {
-        return $this->context->getNode();
+        return $this->request->getNode();
     }
     
     /**
@@ -63,6 +63,6 @@ class IndexerNodeFilterEvent extends AbstractIndexerEvent
      */
     public function getElement()
     {
-        return $this->context->getElement();
+        return $this->request->getElement();
     }
 }

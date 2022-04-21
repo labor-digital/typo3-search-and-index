@@ -1,0 +1,16 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
+<div class="t3saiSearchResults__item t3saiSearchResultItem">
+    <f:if condition="{item.image}">
+        <img src="{item.image}" alt="{item.title}" class="t3saiSearchResultItem__image">
+    </f:if>
+    
+    <h4 class="t3saiSearchResultItem__title">{item.title}</h4>
+    <p class="t3saiSearchResultItem__preview">
+        {item.contentMatch -> t3sai:format.contentMatch()}
+    </p>
+    
+    <a href="{item.url}">
+        <f:translate key="t3sai.p.list.readMore"/>
+    </a>
+</div>
+</html>

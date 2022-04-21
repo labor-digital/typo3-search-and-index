@@ -18,34 +18,34 @@
  */
 
 $EM_CONF[$_EXTKEY] = [
-    "title"            => "LABOR - Typo3 - Search and Index",
-    "description"      => "Labor search engine for typo3 records which also creates an xml sitemap if you desire",
-    "author"           => "Martin Neundorfer",
-    "author_email"     => "m.neundorfer@labor.digital",
-    "category"         => "search",
-    "author_company"   => "Labor.digital",
-    "shy"              => "",
-    "conflicts"        => "",
-    "priority"         => "",
-    "module"           => "",
-    "state"            => "alpha",
-    "internal"         => "",
-    "uploadfolder"     => 0,
-    "createDirs"       => "",
-    "modify_tables"    => "",
-    "clearCacheOnLoad" => 1,
-    "lockType"         => "",
-    "version"          => "9.3.2",
-    "constraints"      => [
-        "depends"   => [
-            "typo3" => "9.0.0-9.99.99",
+    'title' => 'LABOR - Typo3 - Search and Index',
+    'description' => 'Labor search engine for typo3 records which also creates an xml sitemap if you desire',
+    'author' => 'Martin Neundorfer',
+    'author_email' => 'm.neundorfer@labor.digital',
+    'category' => 'search',
+    'author_company' => 'Labor.digital',
+    'shy' => '',
+    'conflicts' => '',
+    'priority' => '',
+    'module' => '',
+    'state' => 'alpha',
+    'internal' => '',
+    'uploadfolder' => 0,
+    'createDirs' => '',
+    'modify_tables' => '',
+    'clearCacheOnLoad' => 1,
+    'lockType' => '',
+    'version' => '10.0.0',
+    'constraints' => [
+        'depends' => [
+            'typo3' => '10.0.0-10.99.99',
         ],
-        "conflicts" => [
+        'conflicts' => [
         ],
-        "suggests"  => [
+        'suggests' => [
         ],
     ],
-    "suggests"         => [
+    'suggests' => [
     
     ],
 ];

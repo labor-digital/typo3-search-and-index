@@ -20,7 +20,7 @@
 declare(strict_types=1);
 
 
-namespace LaborDigital\T3SAI\Event;
+namespace LaborDigital\T3sai\Event;
 
 
 /**
@@ -28,8 +28,8 @@ namespace LaborDigital\T3SAI\Event;
  *
  * Dispatched after the indexer activates the new nodes in the database
  *
- * @package LaborDigital\T3SAI\Event
+ * @package LaborDigital\T3sai\Event
  */
-class IndexerAfterActivateEvent extends AbstractIndexerEvent
+class IndexerAfterActivateEvent
 {
 }

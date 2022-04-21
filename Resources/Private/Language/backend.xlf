@@ -17,36 +17,60 @@
   -->
 
 <xliff version="1.0">
-    <file source-language="en" datatype="plaintext" original="messages" date="2020-01-31T23:48:37Z" product-name="backend15192137743865">
-        <header/>
-        <body>
-            <trans-unit id="indexerTaskTitle">
-                <source>Search and Index - Indexer</source>
-            </trans-unit>
-            <trans-unit id="indexerTaskDesc">
-                <source>Executes the indexer to populate the search index</source>
-            </trans-unit>
-            <trans-unit id="searchField">
-                <source>Search field</source>
-            </trans-unit>
-            <trans-unit id="searchFieldDesc">
-                <source>The frontend element to enter a search query</source>
-            </trans-unit>
-            <trans-unit id="t.pages.index">
-                <source>Include the page in the search (and also the sitemap)</source>
-            </trans-unit>
-            <trans-unit id="t.pages.keywords">
-                <source>Additional Search-Keywords for this page. (Won't be visible for the user)</source>
-            </trans-unit>
-            <trans-unit id="t.pages.priority">
-                <source>Custom priority modifier for this page. (Range: -100 to 100)</source>
-            </trans-unit>
-            <trans-unit id="t.pages.sitemap">
-                <source>Include the page in the sitemap.xml</source>
-            </trans-unit>
-            <trans-unit id="t.pages.tab.sai">
-                <source>Search and Sitemap</source>
-            </trans-unit>
-        </body>
-    </file>
+	<file source-language="en" datatype="plaintext" original="messages" date="2020-01-31T23:48:37Z" product-name="backend15192137743865">
+		<header/>
+		<body>
+			<trans-unit id="indexerTaskTitle">
+				<source>Search and Index - Indexer</source>
+			</trans-unit>
+			<trans-unit id="indexerTaskDesc">
+				<source>Executes the indexer to populate the search index</source>
+			</trans-unit>
+			<trans-unit id="p.input.title">
+				<source>Search field</source>
+			</trans-unit>
+			<trans-unit id="p.input.desc">
+				<source>The content element to enter a search query</source>
+			</trans-unit>
+			<trans-unit id="p.input.field.listPage">
+				<source>List plugin page</source>
+			</trans-unit>
+			<trans-unit id="p.input.field.listPage.desc">
+				<source>If selected, the search request will be redirected to this page instead of being handled on the current page.</source>
+			</trans-unit>
+			<trans-unit id="p.list.title">
+				<source>Search result list</source>
+			</trans-unit>
+			<trans-unit id="p.list.desc">
+				<source>The content element to render the list of search results based</source>
+			</trans-unit>
+			<trans-unit id="p.list.field.itemsPerPage">
+				<source>Items to show per page</source>
+			</trans-unit>
+			<trans-unit id="p.list.field.showTagFilter">
+				<source>Show tag filter</source>
+			</trans-unit>
+			<trans-unit id="p.common.field.searchDomain">
+				<source>Search Domain</source>
+			</trans-unit>
+			<trans-unit id="p.common.field.searchDomain.desc">
+				<source>Defines the domain/namespace to execute this search in. If this field is empty, there are no valid domains for the current site configured.</source>
+			</trans-unit>
+			<trans-unit id="t.pages.index">
+				<source>Include the page in the search (and also the sitemap)</source>
+			</trans-unit>
+			<trans-unit id="t.pages.keywords">
+				<source>Additional Search-Keywords for this page. (Won't be visible for the user)</source>
+			</trans-unit>
+			<trans-unit id="t.pages.priority">
+				<source>Custom priority modifier for this page. (Range: -100 to 100)</source>
+			</trans-unit>
+			<trans-unit id="t.pages.sitemap">
+				<source>Include the page in the sitemap.xml</source>
+			</trans-unit>
+			<trans-unit id="t.pages.tab.sai">
+				<source>Search and Sitemap</source>
+			</trans-unit>
+		</body>
+	</file>
 </xliff>

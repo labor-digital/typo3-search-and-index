@@ -20,12 +20,11 @@
 declare(strict_types=1);
 
 
-namespace LaborDigital\T3SAI\Event;
+namespace LaborDigital\T3sai\Event;
 
 
-use LaborDigital\T3SAI\Configuration\NewsDataTransformerConfig;
-use LaborDigital\T3SAI\Indexer\IndexerContext;
-use LaborDigital\T3SAI\Indexer\IndexNode;
+use LaborDigital\T3sai\Configuration\NewsDataTransformerConfig;
+use LaborDigital\T3sai\Core\Indexer\IndexerContext;
 use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
 
 /**
@@ -33,14 +32,14 @@ use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
  *
  * Is dispatched once for every page node that is transformed using the news transformer
  *
- * @package LaborDigital\T3SAI\Event
+ * @package LaborDigital\T3sai\Event
  */
 class NewsIndexNodeFilterEvent
 {
     /**
      * The index node that is currently being filled
      *
-     * @var \LaborDigital\T3SAI\Indexer\IndexNode
+     * @var \LaborDigital\T3sai\Core\Indexer\Node\Node
      */
     protected $node;
     
@@ -54,39 +53,39 @@ class NewsIndexNodeFilterEvent
     /**
      * The used generator context
      *
-     * @var \LaborDigital\T3SAI\Indexer\IndexerContext
+     * @var \LaborDigital\T3sai\Core\Indexer\IndexerContext
      */
     protected $context;
     
     /**
      * The used configuration for the transformer
      *
-     * @var \LaborDigital\T3SAI\Configuration\NewsDataTransformerConfig
+     * @var \LaborDigital\T3sai\Configuration\NewsDataTransformerConfig
      */
     protected $config;
     
     /**
      * NewsIndexNodeFilterEvent constructor.
      *
-     * @param   \LaborDigital\T3SAI\Indexer\IndexNode                        $node
+     * @param   \LaborDigital\T3sai\Indexer\Node                             $node
      * @param   \TYPO3\CMS\Extbase\DomainObject\AbstractEntity               $entity
-     * @param   \LaborDigital\T3SAI\Indexer\IndexerContext                   $context
-     * @param   \LaborDigital\T3SAI\Configuration\NewsDataTransformerConfig  $config
+     * @param   \LaborDigital\T3sai\Indexer\IndexerContext                   $context
+     * @param   \LaborDigital\T3sai\Configuration\NewsDataTransformerConfig  $config
      */
-    public function __construct(IndexNode $node, AbstractEntity $entity, IndexerContext $context, NewsDataTransformerConfig $config)
+    public function __construct(Node $node, AbstractEntity $entity, IndexerContext $context, NewsDataTransformerConfig $config)
     {
-        $this->node    = $node;
-        $this->entity  = $entity;
+        $this->node = $node;
+        $this->entity = $entity;
         $this->context = $context;
-        $this->config  = $config;
+        $this->config = $config;
     }
     
     /**
      * Returns the index node that is currently being filled
      *
-     * @return \LaborDigital\T3SAI\Indexer\IndexNode
+     * @return \LaborDigital\T3sai\Indexer\Node
      */
-    public function getNode(): IndexNode
+    public function getNode(): Node
     {
         return $this->node;
     }
@@ -104,7 +103,7 @@ class NewsIndexNodeFilterEvent
     /**
      * Returns the used generator context
      *
-     * @return \LaborDigital\T3SAI\Indexer\IndexerContext
+     * @return \LaborDigital\T3sai\Indexer\IndexerContext
      */
     public function getContext(): IndexerContext
     {
@@ -114,7 +113,7 @@ class NewsIndexNodeFilterEvent
     /**
      * Returns the used configuration for the transformer
      *
-     * @return \LaborDigital\T3SAI\Configuration\NewsDataTransformerConfig
+     * @return \LaborDigital\T3sai\Configuration\NewsDataTransformerConfig
      */
     public function getConfig(): NewsDataTransformerConfig
     {

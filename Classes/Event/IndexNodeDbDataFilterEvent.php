@@ -20,18 +20,18 @@
 declare(strict_types=1);
 
 
-namespace LaborDigital\T3SAI\Event;
+namespace LaborDigital\T3sai\Event;
 
 
-use LaborDigital\T3SAI\Indexer\IndexerContext;
-use LaborDigital\T3SAI\Indexer\IndexNode;
+use LaborDigital\T3sai\Core\Indexer\Node\Node;
+use LaborDigital\T3sai\Core\Indexer\Queue\QueueRequest;
 
 /**
  * Class AddNodeDbRowFilterEvent
  *
  * Can be used to filter the DB array of a single row, before it is stored in the database
  *
- * @package LaborDigital\T3SAI\Event
+ * @package LaborDigital\T3sai\Event
  */
 class IndexNodeDbDataFilterEvent extends AbstractIndexerEvent
 {
@@ -49,24 +49,21 @@ class IndexNodeDbDataFilterEvent extends AbstractIndexerEvent
      */
     protected $wordRows;
     
-    /**
-     * @inheritDoc
-     */
-    public function __construct(IndexerContext $context, array $nodeRow, array $wordRows)
+    public function __construct(QueueRequest $request, array $nodeRow, array $wordRows)
     {
-        parent::__construct($context);
-        $this->nodeRow  = $nodeRow;
+        parent::__construct($request);
+        $this->nodeRow = $nodeRow;
         $this->wordRows = $wordRows;
     }
     
     /**
      * Returns the node to persist in the database
      *
-     * @return \LaborDigital\T3SAI\Indexer\IndexNode
+     * @return \LaborDigital\T3sai\Core\Indexer\Node\Node
      */
-    public function getNode(): IndexNode
+    public function getNode(): Node
     {
-        return $this->context->getNode();
+        return $this->request->getNode();
     }
     
     /**

@@ -20,20 +20,20 @@
 declare(strict_types=1);
 
 
-namespace LaborDigital\T3SAI\Event;
+namespace LaborDigital\T3sai\Event;
 
 
-use LaborDigital\T3SAI\Indexer\Transformer\RecordTransformerInterface;
+use LaborDigital\T3sai\Search\Indexer\RecordIndexerInterface;
 
 class IndexerBeforeResolveEvent extends AbstractIndexerEvent
 {
     /**
      * Returns the indexer instance that should now start to convert the elements
      *
-     * @return \LaborDigital\T3SAI\Indexer\Transformer\RecordTransformerInterface
+     * @return \LaborDigital\T3sai\Search\Indexer\RecordIndexerInterface
      */
-    public function getTransformer(): RecordTransformerInterface
+    public function getIndexer(): RecordIndexerInterface
     {
-        return $this->context->getTransformer();
+        return $this->request->getRecordIndexer();
     }
 }

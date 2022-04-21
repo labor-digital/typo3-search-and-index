@@ -1,0 +1,187 @@
+<?php
+/**
+ * Copyright 2020 LABOR.digital
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Last modified: 2020.07.16 at 17:10
+ */
+
+declare(strict_types=1);
+/**
+ * Copyright 2019 LABOR.digital
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Last modified: 2019.09.01 at 23:58
+ */
+
+namespace LaborDigital\T3sai\Controller\Resource;
+
+
+use LaborDigital\T3sai\Domain\Repository\SearchRepository;
+use LaborDigital\T3sai\Event\SearchResourcePostProcessorEvent;
+use LaborDigital\T3sai\Event\SearchResourceQueryFilterEvent;
+use LaborDigital\Typo3BetterApi\ExtConfig\ExtConfigContext;
+use LaborDigital\Typo3BetterApi\NotImplementedException;
+use LaborDigital\Typo3FrontendApi\JsonApi\Configuration\ResourceConfigurator;
+use LaborDigital\Typo3FrontendApi\JsonApi\Controller\AbstractResourceController;
+use LaborDigital\Typo3FrontendApi\JsonApi\Controller\CollectionControllerContext;
+use LaborDigital\Typo3FrontendApi\JsonApi\Controller\ResourceControllerContext;
+use League\Route\Http\Exception\BadRequestException;
+use Neunerlei\Arrays\Arrays;
+use Psr\Http\Message\ServerRequestInterface;
+
+class SearchResourceController extends AbstractResourceController
+{
+    /**
+     * @var \LaborDigital\T3sai\Domain\Repository\SearchRepository
+     */
+    protected $searchRepository;
+
+    /**
+     * @inheritDoc
+     */
+    public function __construct(SearchRepository $searchRepository)
+    {
+        $this->searchRepository = $searchRepository;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public static function configureResource(ResourceConfigurator $configurator, ExtConfigContext $context): void
+    {
+        $configurator->setAllowedProperties([
+            'id',
+            'title',
+            'description',
+            'image',
+            'url',
+            'lang',
+            'tag',
+            'contentMatch',
+            'metaData',
+        ]);
+        $configurator->addAdditionalRoute('/count', 'countAction');
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function resourceAction(ServerRequestInterface $request, int $id, ResourceControllerContext $context)
+    {
+        throw new NotImplementedException();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function collectionAction(ServerRequestInterface $request, CollectionControllerContext $context)
+    {
+        [$query, $options] = $this->prepareArguments($request, $context);
+
+        if (! empty($query)) {
+            return $this->Container()->getWithoutDi(
+                SearchResultPaginator::class, [
+                    $query,
+                    $options,
+                    $this->searchRepository,
+                    function (array $result) use ($request, $context, $options, $query): array {
+                        return $this->EventBus()->dispatch((new SearchResourcePostProcessorEvent(
+                            $request, $context, $options, $query, $result
+                        )))->getResult();
+                    },
+                ]
+            );
+        }
+
+        return $this->EventBus()->dispatch((new SearchResourcePostProcessorEvent(
+            $request, $context, $options, $query, []
+        )))->getResult();
+    }
+
+    /**
+     * Has the same interface as the normal collection action but returns the count of all results
+     * based on their tag
+     *
+     * @param   \Psr\Http\Message\ServerRequestInterface                                     $request
+     * @param   \LaborDigital\Typo3FrontendApi\JsonApi\Controller\ResourceControllerContext  $context
+     *
+     * @return array
+     */
+    public function countAction(ServerRequestInterface $request, ResourceControllerContext $context): array
+    {
+        [$query, $options] = $this->prepareArguments($request, $context);
+
+        return $this->searchRepository->getCountForQuery($query, $options);
+    }
+
+    /**
+     * Receives the server request and the context to prepare the options and the query string
+     * or the used repository methods
+     *
+     * @param   \Psr\Http\Message\ServerRequestInterface                                     $request
+     * @param   \LaborDigital\Typo3FrontendApi\JsonApi\Controller\ResourceControllerContext  $context
+     *
+     * @return array
+     * @throws \League\Route\Http\Exception\BadRequestException
+     */
+    protected function prepareArguments(ServerRequestInterface $request, ResourceControllerContext $context): array
+    {
+        $queryParams = $request->getQueryParams();
+        if (! isset($queryParams['query'])) {
+            throw new BadRequestException('The query parameter is missing!');
+        }
+
+        // Prepare the query
+        $query = urldecode((string)$queryParams['query']);
+
+        // Use the query parameters to configure the repository
+        $options = [];
+        if (! empty($queryParams['L'])) {
+            $options['language'] = (int)$queryParams['L'];
+        }
+        if (! empty($queryParams['tags'])) {
+            $options['tags'] = Arrays::makeFromStringList($queryParams['tags']);
+        }
+        if (isset($queryParams['maxTagItems'])) {
+            $options['maxTagItems'] = max(1, min(5000, (int)$queryParams['maxTagItems']));
+        }
+        if (! empty($queryParams['contentMatchLength'])) {
+            $options['contentMatchLength'] = max(10, min(10000, (int)$queryParams['contentMatchLength']));
+        }
+        if (! empty($queryParams['domain'])) {
+            $options['domain'] = $queryParams['domain'];
+        }
+
+        // Allow filtering
+        $this->EventBus()->dispatch(($e = new SearchResourceQueryFilterEvent(
+            $request, $context, $options, $query
+        )));
+        $query   = $e->getQuery();
+        $options = $e->getOptions();
+
+        return [$query, $options];
+    }
+}

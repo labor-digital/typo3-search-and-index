@@ -19,35 +19,48 @@
 
 declare(strict_types=1);
 
-namespace LaborDigital\T3SAI\Command;
+namespace LaborDigital\T3sai\Command;
 
 
-use LaborDigital\T3SAI\Controller\Traits\IndexRunnerControllerTrait;
+use LaborDigital\T3ba\Core\Di\ContainerAwareTrait;
+use LaborDigital\T3ba\ExtConfigHandler\Command\ConfigureCliCommandInterface;
+use LaborDigital\T3sai\Core\Indexer\Indexer;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class IndexerCommand extends Command
+class IndexerCommand extends Command implements ConfigureCliCommandInterface
 {
-    use IndexRunnerControllerTrait;
+    use ContainerAwareTrait;
     
     /**
      * @inheritDoc
      */
     protected function configure(): void
     {
-        $this->setHelp('Runs the search indexer of the search and index bundle');
+        $this->setDescription('Runs the search indexer of the T3SAI extension');
     }
     
     /**
      * @inheritDoc
      */
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        if ($this->executeIndexer()) {
-            $output->writeln('Done');
-        } else {
-            $output->writeln('Failed!');
+        $output->writeln('Starting T3SAI Indexer, this might take a while...');
+        
+        $errors = $this->makeInstance(Indexer::class)->run();
+        
+        if (! $errors) {
+            $output->writeln('OK - T3SAI indexer finished without problems');
+            
+            return 0;
         }
+        
+        $output->writeln('ERRORS - There were errors while executing the T3SAI indexer...');
+        foreach ($errors as $error) {
+            $output->writeln('  - ' . $error);
+        }
+        
+        return 1;
     }
 }

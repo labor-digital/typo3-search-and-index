@@ -19,361 +19,269 @@
 
 declare(strict_types=1);
 
-namespace LaborDigital\T3SAI\Domain\Repository;
+namespace LaborDigital\T3sai\Domain\Repository;
 
-use LaborDigital\T3SAI\Domain\Entity\PersistableNodeList;
-use LaborDigital\T3SAI\Event\FindByQueryAfterFetchEvent;
-use LaborDigital\T3SAI\Event\FindByQueryAfterProcessingEvent;
-use LaborDigital\T3SAI\Event\FindByQueryInputFilterEvent;
-use LaborDigital\T3SAI\Indexer\ContentParser;
-use LaborDigital\T3SAI\Util\SearchQueryBuilder;
-use LaborDigital\Typo3BetterApi\Container\CommonDependencyTrait;
-use LaborDigital\Typo3BetterApi\Domain\BetterQuery\StandaloneBetterQuery;
-use Neunerlei\Arrays\Arrays;
-use Neunerlei\Options\Options;
-use TYPO3\CMS\Core\Database\Connection;
+use LaborDigital\T3sai\Core\Lookup\Backend\Processor\LookupResultProcessorInterface;
+use LaborDigital\T3sai\Core\Lookup\Backend\Processor\NullProcessor;
+use LaborDigital\T3sai\Core\Lookup\Backend\SqlQuery\SqlQueryProviderInterface;
+use LaborDigital\T3sai\Core\Lookup\Lexer\InputLexer;
+use LaborDigital\T3sai\Core\Lookup\Request\LookupRequest;
+use LaborDigital\T3sai\Core\Lookup\Request\RequestFactory;
+use LaborDigital\T3sai\Event\LookupResultFilterEvent;
+use LaborDigital\T3sai\Exception\MissingSqlQueryProviderException;
+use Psr\EventDispatcher\EventDispatcherInterface;
+use TYPO3\CMS\Core\SingletonInterface;
 
-class SearchRepository
+class SearchRepository implements SingletonInterface
 {
-    use CommonDependencyTrait;
-
     public const TABLE_NODES = 'tx_search_and_index_nodes';
     public const TABLE_WORDS = 'tx_search_and_index_words';
-
+    
     /**
-     * Persists the the given node list into the database tables.
+     * @var \LaborDigital\T3sai\Core\Lookup\Backend\SqlQuery\SqlQueryProviderInterface[]
+     */
+    protected $sqlQueryProviders = [];
+    
+    /**
+     * @var LookupResultProcessorInterface[]
+     */
+    protected $resultProcessors = [];
+    
+    /**
+     * @var \LaborDigital\T3sai\Core\Lookup\Lexer\InputLexer
+     */
+    protected $lexer;
+    
+    /**
+     * @var \LaborDigital\T3sai\Core\Lookup\Request\RequestFactory
+     */
+    protected $requestFactory;
+    
+    /**
+     * @var \Psr\EventDispatcher\EventDispatcherInterface
+     */
+    protected $eventDispatcher;
+    
+    public function __construct(
+        InputLexer $lexer,
+        RequestFactory $requestFactory,
+        EventDispatcherInterface $eventDispatcher
+    )
+    {
+        $this->requestFactory = $requestFactory;
+        $this->eventDispatcher = $eventDispatcher;
+    }
+    
+    /**
+     * Registers a new implementation for the sql query provider
      *
-     * @param   \LaborDigital\T3SAI\Domain\Entity\PersistableNodeList  $nodeList
-     */
-    public function persistNodes(PersistableNodeList $nodeList): void
-    {
-        // Persist the new nodes
-        $nodeQuery = $this->Db()->getQuery(static::TABLE_NODES);
-        foreach (array_chunk($nodeList->getNodeRows(), 25) as $chunk) {
-            $nodeQuery->runInTransaction(static function () use ($chunk, $nodeQuery) {
-                foreach ($chunk as $row) {
-                    $nodeQuery->insert($row);
-                }
-            });
-        }
-
-        // Persist the new words
-        $wordQuery = $this->Db()->getQuery(static::TABLE_WORDS);
-        foreach (array_chunk($nodeList->getWordRows(), 50) as $chunk) {
-            $nodeQuery->runInTransaction(static function () use ($chunk, $wordQuery) {
-                foreach ($chunk as $row) {
-                    $wordQuery->insert($row);
-                }
-            });
-        }
-    }
-
-    /**
-     * Removes all nodes and keywords which are currently active and sets all non active rows to be active.
-     * This should prevent any noticeable downtime of the search engine
-     */
-    public function activateNewNodesAndRemoveOldOnes(): void
-    {
-        // Update the node table
-        $this->Db()
-             ->getQuery(static::TABLE_NODES)
-             ->runInTransaction(static function (StandaloneBetterQuery $query) {
-                 $query->withWhere(['active' => '1'])->delete();
-                 $query->update(['active' => '1']);
-             });
-
-        // Update the word table
-        $this->Db()
-             ->getQuery(static::TABLE_WORDS)
-             ->runInTransaction(static function (StandaloneBetterQuery $query) {
-                 $query->withWhere(['active' => '1'])->delete();
-                 $query->update(['active' => '1']);
-             });
-    }
-
-    /**
-     * Removes all nodes that are currently marked as inactive.
-     * Those are probably remnants of a previous run which failed horribly
-     */
-    public function removeInactiveNodes(): void
-    {
-        // Update the node table
-        $this->Db()
-             ->getQuery(static::TABLE_NODES)
-             ->withWhere(['active !=' => '1'])->delete();
-
-        // Update the word table
-        $this->Db()
-             ->getQuery(static::TABLE_WORDS)
-             ->withWhere(['active !=' => '1'])->delete();
-    }
-
-    /**
-     * Returns a multidimensional array of index nodes.
-     * The nodes are prepared for the extension's SiteMapGenerator class.
+     * @param   \LaborDigital\T3sai\Core\Lookup\Backend\SqlQuery\SqlQueryProviderInterface
      *
-     * @param   string  $domain
-     *
-     * @return array
+     * @return $this
      */
-    public function findSiteMap(string $domain = 'default'): array
+    public function addSqlQueryProvider(SqlQueryProviderInterface $provider): self
     {
-        $result = $this->Db()
-                       ->getQuery(static::TABLE_NODES)
-                       ->withWhere([
-                           'add_to_sitemap >' => '0',
-                           'active'           => '1',
-                           'domain'           => $domain,
-                       ])
-                       ->withOrder('priority', 'desc')
-                       ->getAll(['url', 'priority', 'timestamp', 'image', 'title']);
-
-        if (! is_array($result)) {
-            $result = [];
-        }
-
-        return $result;
+        $this->sqlQueryProviders[] = $provider;
+        
+        return $this;
     }
-
+    
+    /**
+     * Registers a new result processor to post-process the rows resolved from the database
+     *
+     * @param   \LaborDigital\T3sai\Core\Lookup\Backend\Processor\LookupResultProcessorInterface  $processor
+     *
+     * @return $this
+     */
+    public function addResultProcessor(LookupResultProcessorInterface $processor): self
+    {
+        $this->resultProcessors[] = $processor;
+        
+        return $this;
+    }
+    
     /**
      * Returns a list of all currently stored tags in the database
      *
+     * @param   array  $options   Additional options to use when looking up the tags
+     *                            - domain string: By default, the best matching search domain (selected by site and language) will be used,
+     *                            you can use this option to force the search to use a specific domain with the given identifier instead.
+     *                            - site string|SiteInterface: By default, the current TYPO3 site will be used for the search.
+     *                            This option can be used to override the defaults to a specific site.
+     *                            - langauge string|int|SiteLanguage: By default, the current TYPO3 frontend language will be used for the search.
+     *                            This option can be used to override the defaults to a specific language.
+     *
      * @return array
      */
-    public function findAllTags(): array
+    public function findAllTags(array $options = []): array
     {
-        return $this->Db()->getQuery(static::TABLE_NODES)->withWhere(['active' => '1'])->getAll(['DISTINCT tag']);
+        return $this->dispatchRequest(LookupRequest::TYPE_TAGS, $options);
     }
-
+    
     /**
-     * Finds matching search results based on the given query string.
+     * Returns a list of search results for the given input
      *
-     * @param   string  $queryString  The raw search value that was entered by the user.
-     * @param   array   $options      Additional options:
-     *                                - language int (0): The language uid to limit the search to
-     *                                - tags array: A list of tags to limit the search to. The tags are combined using an
-     *                                OR operator.
-     *                                - maxItems int: The maximal number of search results returned by this method.
-     *                                By default all search results will be returned only limited by maxTagItems
-     *                                - offset int (0): the offset from the top of the result list to return.
-     *                                This will only work if maxItems was set!
-     *                                - maxTagItems int (20): The maximal number of search results returned for
-     *                                a single tag.
-     *                                - additionalLimiterQuery string: Additional "HAVING" condition which limits the
-     *                                number of outputed results. Should start with an OR or an AND, will be combined with
-     *                                the $limit and can not override it!
-     *                                - contentMatchLength int(400): The max number of characters the contentMatch result
-     *                                field should contain
-     *
-     *                                DEPRECATED:
-     *                                - limit int (0): The maximal number of search results returned by this method
+     * @param   string  $input    The input string to find the results for
+     * @param   array   $options  Additional options to use when looking up the results
+     *                            - maxItems int: Sets the maximal number of search results returned by this method.
+     *                            By default, all search results will be returned only limited by "maxTagItems".
+     *                            WARNING: If "maxTagItems" is set, this setting will be ignored
+     *                            - offset int: Sets the offset from the top of the result list to return.
+     *                            WARNING: If "maxTagItems" is set, this setting will be ignored
+     *                            - maxTagItems int: Sets the maximal number of search results returned for a single tag.
+     *                            WARNING: This overrides "maxItems"
+     *                            - additionalWhere string: Additional "WHERE" condition which limits the number of outputted results.
+     *                            MUST start with an OR, or an AND. All fields MUST be resolved through the `r`.`field` alias.
+     *                            Your code MUST be sanitized!
+     *                            - contentMatchLength int (400): The max number of characters the contentMatch result field should contain
+     *                            - domain string: By default, the best matching search domain (selected by site and language) will be used,
+     *                            you can use this option to force the search to use a specific domain with the given identifier instead.
+     *                            - site string|SiteInterface: By default, the current TYPO3 site will be used for the search.
+     *                            This option can be used to override the defaults to a specific site.
+     *                            - langauge string|int|SiteLanguage: By default, the current TYPO3 frontend language will be used for the search.
+     *                            This option can be used to override the defaults to a specific language.
      *
      * @return array
-     * @todo remove "limit" in v10
      */
-    public function findByQuery(string $queryString, array $options = []): array
+    public function findSearchResults(string $input, array $options = []): array
     {
-        [$searchString, $searchWords, $options] = $this->prepareInputs($queryString, $options);
-
-        // Allow filtering
-        $this->EventBus()->dispatch(($e = new FindByQueryInputFilterEvent($searchString, $searchWords, $options)));
-        $searchString = $e->getSearchString();
-        $searchWords  = $e->getSearchWords();
-        $options      = $e->getOptions();
-
-        // Build the query as a SQL string
-        $queryBuilder = $this->Db()->getQueryBuilder(self::TABLE_NODES);
-        $queries      = $this->getSingletonOf(SearchQueryBuilder::class)
-                             ->buildQueries($queryBuilder, $searchString, $searchWords, $options);
-
-        // Allow filtering
-        $this->EventBus()->dispatch(($e = new FindByQueryAfterFetchEvent(
-            $searchString, $searchWords, $options, $this->executeQueries($queries, $queryBuilder->getConnection())
-        )));
-        $rows = $e->getRows();
-
-        // Nothing to do if we have nothing to do...
-        if (empty($rows)) {
-            return [];
-        }
-
-        // Run trough the results and apply some post processing
-        $results = [];
-        foreach ($rows as $k => $r) {
-            // Find matchable words
-            $c = preg_replace('~(' . implode('|', $searchWords) . ')~ui', '[match]$1[/match]', $r['content']);
-
-            // Attach similar sounding words to the word list if we did not find a match
-            if (stripos($c, '[match]') === false) {
-                $rowWords           = array_unique(explode(' ', $r['content']));
-                $searchWordsSoundex = array_map('soundex', $searchWords);
-                foreach ($rowWords as $rowWord) {
-                    if (in_array(soundex($rowWord), $searchWordsSoundex)) {
-                        $searchWords[] = $rowWord;
-                    }
-                }
-                $searchWords = array_unique($searchWords);
-
-                // Retry with the new search words
-                $c = preg_replace('~(' . implode('|', $searchWords) . ')~ui', '[match]$1[/match]', $r['content']);
-            }
-
-            // Extract the matching content snippet
-            $r['contentMatch'] = '';
-            if (($pos = stripos($c, '[match]')) !== false) {
-                $pos    = max(0, $pos - $options['contentMatchLength'] / 4);
-                $cParts = explode(' ', substr($c, $pos));
-                // Remove probably broken first word when this is not the start of the string
-                if ($pos !== 0) {
-                    array_shift($cParts);
-                }
-                $c = '';
-                while (strlen($c) <= $options['contentMatchLength'] && ! empty($cParts)) {
-                    $c .= rtrim(' ' . trim(array_shift($cParts), ' .,'));
-                }
-                $r['contentMatch'] = ($pos === 0 ? '' : '...') . trim($c) . (empty($cParts) ? '' : '...');
-            }
-
-            // Unpack the meta data
-            $r['metaData'] = json_decode($r['meta_data'], true, 512, JSON_THROW_ON_ERROR);
-            unset($r['meta_data']);
-
-            $results[$r['id']] = $r;
-        }
-
-        // Allow filtering
-        $this->EventBus()->dispatch(($e = new FindByQueryAfterProcessingEvent(
-            $searchString, $searchWords, $options, $results
-        )));
-
-        return $e->getResults();
+        return $this->dispatchRequest(LookupRequest::TYPE_SEARCH, $options, $input);
     }
-
+    
     /**
      * Returns an array containing the count of results found by the respective tags.
-     * The array also contains an "@total" key, which holds the number of all results that were found
+     * The array also contains an "_total" key, which holds the number of all results that were found
      *
-     * @param   string  $queryString  The raw search value that was entered by the user.
-     * @param   array   $options      {@see SearchRepository::findByQuery()} to find the options
+     * @param   string  $input    The input string to find the counts for
+     * @param   array   $options  Additional options to use when calculating the count
+     *                            WARNING: This overrides "maxItems"
+     *                            - additionalWhere string: Additional "WHERE" condition which limits the number of outputted results.
+     *                            MUST start with an OR, or an AND. All fields MUST be resolved through the `r`.`field` alias.
+     *                            Your code MUST be sanitized!
+     *                            - domain string: By default, the best matching search domain (selected by site and language) will be used,
+     *                            you can use this option to force the search to use a specific domain with the given identifier instead.
+     *                            - site string|SiteInterface: By default, the current TYPO3 site will be used for the search.
+     *                            This option can be used to override the defaults to a specific site.
+     *                            - langauge string|int|SiteLanguage: By default, the current TYPO3 frontend language will be used for the search.
+     *                            This option can be used to override the defaults to a specific language.
      *
      * @return array
      */
-    public function getCountForQuery(string $queryString, array $options = []): array
+    public function findSearchCounts(string $input, array $options = []): array
     {
-        [$searchString, $searchWords, $options] = $this->prepareInputs($queryString, $options);
-        $queryBuilder   = $this->Db()->getQueryBuilder(self::TABLE_NODES);
-        $queries        = $this->getSingletonOf(SearchQueryBuilder::class)
-                               ->buildCountQueries($queryBuilder, $searchString, $searchWords, $options);
-        $result         = $this->executeQueries($queries, $queryBuilder->getConnection());
-        $list           = Arrays::getList($result, ['count'], 'tag');
-        $list['@total'] = is_array($list) ? array_sum(array_values($list)) : 0;
-
-        return $list;
+        return $this->dispatchRequest(LookupRequest::TYPE_SEARCH_COUNT, $options, $input);
     }
-
+    
     /**
-     * Prepares and validates the given values for the getCountForQuery() and findByQuery()
-     * It will return an array of $searchString, $searchWords, $options
+     * Resolves a list of autocomplete suggestions based on the given input.
+     * If the last char of the input is a space (" ") the suggestions for the next word will be returned,
+     * If the last char of the input is a normal character, the suggestions to complete the current word will be returned.
      *
-     * @param   string  $queryString  The given query string that should be searched for
-     * @param   array   $options      Additional options to apply for the search
+     * @param   string  $input    The input to find the autocomplete results for
+     * @param   array   $options  Additional options to use while finding the results
+     *                            - maxItems int: Sets the maximal number of search results returned by this method.
+     *                            By default, all search results will be returned only limited by "maxTagItems".
+     *                            WARNING: If "maxTagItems" is set, this setting will be ignored
+     *                            - offset int: Sets the offset from the top of the result list to return.
+     *                            WARNING: If "maxTagItems" is set, this setting will be ignored
+     *                            - domain string: By default, the best matching search domain (selected by site and language) will be used,
+     *                            you can use this option to force the search to use a specific domain with the given identifier instead.
+     *                            - site string|SiteInterface: By default, the current TYPO3 site will be used for the search.
+     *                            This option can be used to override the defaults to a specific site.
+     *                            - langauge string|int|SiteLanguage: By default, the current TYPO3 frontend language will be used for the search.
+     *                            This option can be used to override the defaults to a specific language.
      *
-     * @return array|null
+     * @return array
      */
-    protected function prepareInputs(string $queryString, array $options = []): ?array
+    public function findAutocompleteResults(string $input, array $options = []): array
     {
-        // Prepare the options
-        $options = Options::make($options, [
-            'language'               => [
-                'type'    => 'int',
-                'default' => 0,
-            ],
-            'tags'                   => [
-                'type'    => 'array',
-                'default' => [],
-            ],
-            'maxItems'               => [
-                'type'    => 'int',
-                'default' => 0,
-            ],
-            'maxTagItems'            => [
-                'type'    => 'int',
-                'default' => 20,
-            ],
-            // @todo remove this in v10
-            'limit'                  => [
-                'type'    => 'int',
-                'default' => 0,
-            ],
-            'offset'                 => [
-                'type'    => 'int',
-                'default' => 0,
-            ],
-            'additionalLimiterQuery' => [
-                'type'    => 'string',
-                'default' => '',
-            ],
-            'contentMatchLength'     => [
-                'type'    => 'int',
-                'default' => 400,
-            ],
-            'domain'                 => [
-                'type'    => 'string',
-                'default' => 'default',
-                'filter'  => function ($v) {
-                    return preg_replace('~[^A-Za-z0-9\-_]~i', '', $v);
-                },
-            ],
-        ]);
-
-        // @todo remove this in v10
-        if ($options['limit'] !== 0) {
-            $options['maxTagItems'] = $options['limit'];
-        }
-
-        // Prepare the search
-        ['text' => $searchString, 'words' => $searchWords]
-            = $this->getSingletonOf(ContentParser::class)->parseInputList([[$queryString, 0]]);
-        $searchWords = array_keys($searchWords);
-
-        // Skip if the query is empty
-        if (empty($searchWords) || (count($searchWords) < 3 && strlen(implode($searchWords)) < 2)) {
-            return null;
-        }
-
-        return [$searchString, $searchWords, $options];
+        return $this->dispatchRequest(LookupRequest::TYPE_AUTOCOMPLETE, $options, $input);
     }
-
+    
     /**
-     * Helper to execute a given list of queries in a single transaction
-     * The result of the last statement will be returned
+     * Internal helper to dispatch the lifecycle of a lookup request
      *
-     * @param   array       $queries     The list of sql queries to execute
-     * @param   Connection  $connection  The database connection to execute the queries on
+     * @param   string       $requestType
+     * @param   array        $options
+     * @param   string|null  $input
      *
-     * @return array|null
+     * @return array
      */
-    protected function executeQueries(array $queries, Connection $connection): ?array
+    protected function dispatchRequest(string $requestType, array $options = [], ?string $input = null): array
     {
-        $connection->beginTransaction();
-
-        $lastStatement = null;
-        $result        = null;
-
-        foreach ($queries as $query) {
-            if ($lastStatement) {
-                $lastStatement->free();
+        $request = $this->makeRequest($requestType, $options, $input);
+        
+        return $this->eventDispatcher->dispatch(
+            new LookupResultFilterEvent(
+                $request,
+                $this->findProcessor($request)->process(
+                    $request->getQueryBuilder()->getConnection()->executeQuery(
+                        (string)$this->findProvider($request)->getQuery($request)
+                    ),
+                    $request
+                )
+            )
+        )->getResult();
+    }
+    
+    /**
+     * Tries to resolve the correct sql query provider for the current request,
+     * or will die horribly throwing an exception
+     *
+     * @param   \LaborDigital\T3sai\Core\Lookup\Request\LookupRequest  $request
+     *
+     * @return \LaborDigital\T3sai\Core\Lookup\Backend\SqlQuery\SqlQueryProviderInterface
+     * @throws \LaborDigital\T3sai\Exception\MissingSqlQueryProviderException
+     */
+    protected function findProvider(LookupRequest $request): SqlQueryProviderInterface
+    {
+        $connection = $request->getQueryBuilder()->getConnection();
+        $platformName = $connection->getDriver()->getDatabasePlatform()->getName();
+        
+        foreach ($this->sqlQueryProviders as $provider) {
+            if ($provider->canHandle($platformName, $connection, $request)) {
+                return $provider;
             }
-
-            $lastStatement = $connection->executeQuery($query);
         }
-
-        if ($lastStatement) {
-            $result = $lastStatement->fetchAllAssociative();
+        
+        throw new MissingSqlQueryProviderException(
+            'There is no available sql query providers available for database platform: "' . $platformName . '"');
+    }
+    
+    /**
+     * Tries to resolve a matching result processor for the given request.
+     * If no processor can be found the null processor will be returned
+     *
+     * @param   \LaborDigital\T3sai\Core\Lookup\Request\LookupRequest  $request
+     *
+     * @return \LaborDigital\T3sai\Core\Lookup\Backend\Processor\LookupResultProcessorInterface
+     */
+    protected function findProcessor(LookupRequest $request): LookupResultProcessorInterface
+    {
+        foreach ($this->resultProcessors as $processor) {
+            if ($processor->canHandle($request)) {
+                return $processor;
+            }
         }
-
-        $connection->commit();
-
-        return $result;
+        
+        return new NullProcessor();
+    }
+    
+    /**
+     * Utilizes the lexer and request factory to generate a new request instance based on the given input
+     *
+     * @param   string       $requestType
+     * @param   array        $options
+     * @param   string|null  $input
+     *
+     * @return \LaborDigital\T3sai\Core\Lookup\Request\LookupRequest
+     */
+    protected function makeRequest(string $requestType, array $options = [], ?string $input = null): LookupRequest
+    {
+        return $this->requestFactory->makeRequest(
+            $input,
+            $requestType,
+            $options
+        );
     }
 }

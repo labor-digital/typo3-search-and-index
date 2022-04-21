@@ -20,14 +20,14 @@
 declare(strict_types=1);
 
 
-namespace LaborDigital\T3SAI\Exception\Indexer;
+namespace LaborDigital\T3sai\Exception\Indexer;
 
 /**
  * Class InLimboException
  *
  * Thrown when something is requested from the indexer context that is currently not available.
  *
- * @package LaborDigital\T3SAI\Exception\Indexer
+ * @package LaborDigital\T3sai\Exception\Indexer
  */
 class InLimboException extends IndexerException
 {

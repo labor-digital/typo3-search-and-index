@@ -20,29 +20,46 @@
 declare(strict_types=1);
 
 
-namespace LaborDigital\T3SAI\Event;
+namespace LaborDigital\T3sai\Event;
 
 
-use LaborDigital\T3SAI\Configuration\PageDataTransformerConfig;
-use LaborDigital\T3SAI\Indexer\IndexNode;
+use LaborDigital\T3sai\Core\Indexer\Node\Node;
+use LaborDigital\T3sai\Core\Indexer\Queue\QueueRequest;
 
 /**
  * Class PageIndexNodeFilterEvent
  *
- * Is dispatched once for every page node that is transformed using the page transformer
+ * Is dispatched once for every page node that is transformed using the page indexer
  *
- * @package LaborDigital\T3SAI\Event
+ * @package LaborDigital\T3sai\Event
  */
 class PageIndexNodeFilterEvent extends AbstractIndexerEvent
 {
     /**
+     * @var array
+     */
+    protected $pageData;
+    
+    /**
+     * @var array
+     */
+    protected $options;
+    
+    public function __construct(QueueRequest $request, array $pageData, array $options)
+    {
+        parent::__construct($request);
+        $this->pageData = $pageData;
+        $this->options = $options;
+    }
+    
+    /**
      * Returns the index node that is currently being filled
      *
-     * @return \LaborDigital\T3SAI\Indexer\IndexNode
+     * @return \LaborDigital\T3sai\Core\Indexer\Node\Node
      */
-    public function getNode(): IndexNode
+    public function getNode(): Node
     {
-        return $this->context->getNode();
+        return $this->request->getNode();
     }
     
     /**
@@ -50,19 +67,19 @@ class PageIndexNodeFilterEvent extends AbstractIndexerEvent
      *
      * @return array
      */
-    public function getPageRecord(): array
+    public function getData(): array
     {
-        return $this->context->getElement();
+        return $this->pageData;
     }
     
     /**
-     * Returns the used configuration for the transformer
+     * Returns the used configuration for the indexer
      *
-     * @return \LaborDigital\T3SAI\Configuration\PageDataTransformerConfig
+     * @return array
      */
-    public function getConfig(): PageDataTransformerConfig
+    public function getOptions(): array
     {
-        return $this->context->getDomainConfig()->getPageTransformerConfig();
+        return $this->options;
     }
     
     

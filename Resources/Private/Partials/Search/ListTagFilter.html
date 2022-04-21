@@ -1,0 +1,53 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
+<ol class="t3saiTagFilter">
+    <f:if condition="{f:count(subject: '{counts}')} > 2">
+        <li>
+            <f:if condition="!{tag}">
+                <f:then>
+                    <strong class="t3saiTagFilter__item t3saiTagFilter__item--all t3saiTagFilter--active">
+                        <f:translate key="t3sai.tag.all"/>
+                        ({counts._total})
+                    </strong>
+                </f:then>
+                <f:else>
+                    <a class="t3saiTagFilter__item t3saiTagFilter__item--all"
+                       href="{t3ba:link.uri(definition: 't3saiSearchList',
+                           args: '{queryString: \'{queryString}\'}')}">
+                        <f:translate key="t3sai.tag.all"/>
+                        ({counts._total})
+                    </a>
+                </f:else>
+            </f:if>
+        </li>
+    </f:if>
+    <f:for as="count" each="{counts}" key="listTag">
+        <f:if condition="{listTag} != '_total'">
+            <li>
+                <f:if condition="{tag} == {listTag}">
+                    <f:then>
+                        <strong class="t3saiTagFilter__item t3saiTagFilter--active">
+                            <f:render section="item" arguments="{_all}"/>
+                        </strong>
+                    </f:then>
+                    <f:else>
+                        <f:variable name="translatedTag"
+                                    value="{t3sai:format.translateTag(domainIdentifier: '{domainIdentifier}',
+                                    tag: '{listTag}', asInput: 'true')}"/>
+                        
+                        <a class="t3saiTagFilter__item"
+                           href="{t3ba:link.uri(definition: 't3saiSearchList',
+                           args: '{tag: \'{translatedTag}\', queryString: \'{queryString}\'}')}">
+                            <f:render section="item" arguments="{_all}"/>
+                        </a>
+                    </f:else>
+                </f:if>
+            </li>
+        </f:if>
+    </f:for>
+</ol>
+
+<f:section name="item">
+    <t3sai:format.translateTag domainIdentifier="{domainIdentifier}" tag="{listTag}"/>
+    ({count})
+</f:section>
+</html>

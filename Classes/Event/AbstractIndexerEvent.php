@@ -20,36 +20,43 @@
 declare(strict_types=1);
 
 
-namespace LaborDigital\T3SAI\Event;
+namespace LaborDigital\T3sai\Event;
 
-use LaborDigital\T3SAI\Indexer\IndexerContext;
+use LaborDigital\T3sai\Core\Indexer\Queue\QueueRequest;
 
 abstract class AbstractIndexerEvent
 {
     /**
-     * The indexer context currently running
-     *
-     * @var \LaborDigital\T3SAI\Indexer\IndexerContext
+     * @var \LaborDigital\T3sai\Core\Indexer\Queue\QueueRequest
      */
-    protected $context;
+    protected $request;
     
-    /**
-     * IndexerBeforeResolveEvent constructor.
-     *
-     * @param   \LaborDigital\T3SAI\Indexer\IndexerContext  $context
-     */
-    public function __construct(IndexerContext $context)
+    public function __construct(QueueRequest $request)
     {
-        $this->context = $context;
+        $this->request = $request;
     }
     
     /**
-     * Returns the indexer context currently running
+     * Returns the instance of the request for the current search domain
      *
-     * @return \LaborDigital\T3SAI\Indexer\IndexerContext
+     * @return \LaborDigital\T3sai\Core\Indexer\Queue\QueueRequest
      */
-    public function getContext(): IndexerContext
+    public function getRequest(): QueueRequest
     {
-        return $this->context;
+        return $this->request;
+    }
+    
+    /**
+     * Allows you to modify the request for the search domain
+     *
+     * @param   \LaborDigital\T3sai\Core\Indexer\Queue\QueueRequest  $request
+     *
+     * @return $this
+     */
+    public function setRequest(QueueRequest $request): self
+    {
+        $this->request = $request;
+        
+        return $this;
     }
 }

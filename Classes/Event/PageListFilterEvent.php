@@ -20,19 +20,19 @@
 declare(strict_types=1);
 
 
-namespace LaborDigital\T3SAI\Event;
+namespace LaborDigital\T3sai\Event;
 
 
-use LaborDigital\T3SAI\Configuration\PageDataTransformerConfig;
-use LaborDigital\T3SAI\Indexer\IndexerContext;
+use LaborDigital\T3sai\Core\Indexer\Queue\QueueRequest;
+use LaborDigital\T3sai\Search\Indexer\Page\PageData\PageDataIterator;
 
 /**
  * Class PageListFilterEvent
  *
- * Dispatched after all pages have been gathered by the page transformer.
- * Used to apply additional filtering or post processing of the page list
+ * Dispatched after the page data iterator was created in the page indexer
+ * Allows you to modify the list or do something with it yourself.
  *
- * @package LaborDigital\T3SAI\Event
+ * @package LaborDigital\T3sai\Event
  */
 class PageListFilterEvent extends AbstractIndexerEvent
 {
@@ -40,35 +40,40 @@ class PageListFilterEvent extends AbstractIndexerEvent
     /**
      * The list of pages that have been gathered for indexing
      *
-     * @var array
+     * @var PageDataIterator
      */
     protected $pages;
     
     /**
-     * @inheritDoc
+     * The options of the page indexer
+     *
+     * @var array
      */
-    public function __construct(IndexerContext $context, array $pages)
+    protected $options;
+    
+    public function __construct(QueueRequest $request, PageDataIterator $pages, array $options)
     {
-        parent::__construct($context);
+        parent::__construct($request);
         $this->pages = $pages;
+        $this->options = $options;
     }
     
     /**
-     * Returns the used configuration for the transformer
+     * Returns the used configuration for the indexer
      *
-     * @return \LaborDigital\T3SAI\Configuration\PageDataTransformerConfig
+     * @return array
      */
-    public function getConfig(): PageDataTransformerConfig
+    public function getOptions(): array
     {
-        return $this->context->getDomainConfig()->getPageTransformerConfig();
+        return $this->options;
     }
     
     /**
      * Returns the list of pages that have been gathered for indexing
      *
-     * @return array
+     * @return \LaborDigital\T3sai\Search\Indexer\Page\PageData\PageDataIterator
      */
-    public function getPages(): array
+    public function getPages(): PageDataIterator
     {
         return $this->pages;
     }
@@ -76,11 +81,11 @@ class PageListFilterEvent extends AbstractIndexerEvent
     /**
      * Allows you to update the list of pages that have been gathered for indexing
      *
-     * @param   array  $pages
+     * @param   \LaborDigital\T3sai\Search\Indexer\Page\PageData\PageDataIterator  $pages
      *
      * @return PageListFilterEvent
      */
-    public function setPages(array $pages): PageListFilterEvent
+    public function setPages(PageDataIterator $pages): self
     {
         $this->pages = $pages;
         

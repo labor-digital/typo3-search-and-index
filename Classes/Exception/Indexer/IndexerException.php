@@ -20,9 +20,9 @@
 declare(strict_types=1);
 
 
-namespace LaborDigital\T3SAI\Exception\Indexer;
+namespace LaborDigital\T3sai\Exception\Indexer;
 
-use LaborDigital\T3SAI\Exception\SearchAndIndexException;
+use LaborDigital\T3sai\Exception\SearchAndIndexException;
 
 class IndexerException extends SearchAndIndexException
 {

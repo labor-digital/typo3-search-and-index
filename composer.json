@@ -1,44 +1,42 @@
 {
-    "name": "labor-digital/typo3-search-and-index",
-    "type": "typo3-cms-extension",
-    "description": "A fast, faceted search engine for TYPO3 records which also creates a complete xml sitemap if you desire",
-    "license": "Apache-2.0",
-    "authors": [
-        {
-            "name": "LABOR.digital",
-            "email": "info@labor.tools",
-            "homepage": "https://www.labor.digital",
-            "role": "Company"
-        },
-        {
-            "name": "Martin Neundorfer",
-            "email": "code@neunerlei.eu",
-            "homepage": "https://www.neunerlei.eu",
-            "role": "Developer"
-        }
-    ],
-    "support": {
-        "issues": "https://github.com/labor-digital/typo3-search-and-index/issues",
-        "source": "https://github.com/labor-digital/typo3-search-and-index"
-    },
-    "require": {
-        "labor-digital/typo3-better-api": "^9.0"
-    },
-    "require-dev": {
-        "roave/security-advisories": "dev-master"
-    },
-    "autoload": {
-        "psr-4": {
-            "LaborDigital\\T3SAI\\": "Classes"
-        }
-    },
-    "version": "9.3.2",
-    "extra": {
-        "T3BA": {
-            "isDev": true
-        },
-        "typo3/cms": {
-            "extension-key": "T3SAI"
-        }
-    }
+	"name": "labor-digital/typo3-search-and-index",
+	"type": "typo3-cms-extension",
+	"description": "A fast, faceted search engine for TYPO3 records which also creates a complete xml sitemap if you desire",
+	"license": "Apache-2.0",
+	"authors": [
+		{
+			"name": "LABOR.digital",
+			"email": "info@labor.tools",
+			"homepage": "https://www.labor.digital",
+			"role": "Company"
+		},
+		{
+			"name": "Martin Neundorfer",
+			"email": "code@neunerlei.eu",
+			"homepage": "https://www.neunerlei.eu",
+			"role": "Developer"
+		}
+	],
+	"support": {
+		"issues": "https://github.com/labor-digital/typo3-search-and-index/issues",
+		"source": "https://github.com/labor-digital/typo3-search-and-index"
+	},
+	"require": {
+		"labor-digital/typo3-better-api": "^10.35.0",
+		"thepixeldeveloper/sitemap": "^5.1"
+	},
+	"autoload": {
+		"psr-4": {
+			"LaborDigital\\T3sai\\": "Classes"
+		}
+	},
+	"version": "9.3.2",
+	"extra": {
+		"T3BA": {
+			"isDev": true
+		},
+		"typo3/cms": {
+			"extension-key": "t3sai"
+		}
+	}
 }

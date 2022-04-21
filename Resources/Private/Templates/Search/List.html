@@ -1,0 +1,35 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
+<section class="t3saiSearchResults">
+    <div class="t3saiSearchResults__form">
+        <f:form action="list">
+            <f:render partial="Search/InputForm" arguments="{_all}"/>
+        </f:form>
+    </div>
+    
+    <f:if condition="{showFilter}">
+        <div class="t3saiSearchResults__filter">
+            <f:render partial="Search/ListTagFilter" arguments="{_all}"/>
+        </div>
+    </f:if>
+    
+    <f:if condition="{items.paginatedItems -> f:count()}">
+        
+        <f:then>
+            <f:for as="item" each="{items.paginatedItems}">
+                <f:render partial="Search/ListItem" arguments="{_all}"/>
+            </f:for>
+            
+            <nav class="t3saiSearchResults__pagination t3saiPagination">
+                <t3sai:util.pagination paginator="{items}"/>
+            </nav>
+        </f:then>
+        
+        <f:else>
+            <p class="t3saiSearchResults__noResults">
+                <f:translate key="t3sai.p.list.noResults"/>
+            </p>
+        </f:else>
+    
+    </f:if>
+</section>
+</html>
