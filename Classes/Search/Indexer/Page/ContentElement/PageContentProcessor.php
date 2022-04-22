@@ -24,12 +24,12 @@ namespace LaborDigital\T3sai\Search\Indexer\Page\ContentElement;
 
 
 use LaborDigital\T3ba\Core\Di\ContainerAwareTrait;
-use LaborDigital\T3sai\Core\Indexer\Node\Node;
+use LaborDigital\T3sai\Core\Indexer\Queue\QueueRequest;
 use LaborDigital\T3sai\Search\Indexer\Page\PageContent\PageContentIterator;
 use Neunerlei\TinyTimy\DateTimy;
 use RecursiveIteratorIterator;
 
-class ContentElementProcessor
+class PageContentProcessor
 {
     use ContainerAwareTrait;
     
@@ -74,12 +74,12 @@ class ContentElementProcessor
     /**
      * Generates the list of content strings from the list of page contents
      *
-     * @param   \LaborDigital\T3sai\Core\Indexer\Node\Node                               $node
      * @param   \LaborDigital\T3sai\Search\Indexer\Page\PageContent\PageContentIterator  $content
+     * @param   \LaborDigital\T3sai\Core\Indexer\Queue\QueueRequest                      $request
      *
      * @return array
      */
-    public function generateContent(Node $node, PageContentIterator $content): array
+    public function generateContent(PageContentIterator $content, QueueRequest $request): array
     {
         $this->latestTimestamp = 0;
         
@@ -94,11 +94,11 @@ class ContentElementProcessor
             }
             
             foreach ($this->elementIndexers as $indexer) {
-                if (! $indexer->canHandle($cType, $listType, $row, $node)) {
+                if (! $indexer->canHandle($cType, $listType, $row, $request)) {
                     continue;
                 }
                 
-                $contents[] = trim($indexer->generateContent($row, $node));
+                $contents[] = trim($indexer->generateContent($row, $request));
             }
         }
         

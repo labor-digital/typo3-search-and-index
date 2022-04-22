@@ -23,7 +23,7 @@ declare(strict_types=1);
 namespace LaborDigital\T3sai\Search\Indexer\Page\ContentElement;
 
 
-use LaborDigital\T3sai\Core\Indexer\Node\Node;
+use LaborDigital\T3sai\Core\Indexer\Queue\QueueRequest;
 
 class DefaultContentElementIndexer implements ContentElementIndexerInterface
 {
@@ -35,7 +35,7 @@ class DefaultContentElementIndexer implements ContentElementIndexerInterface
     /**
      * @inheritDoc
      */
-    public function canHandle(string $cType, string $listType, array $row, Node $node): bool
+    public function canHandle(string $cType, string $listType, array $row, QueueRequest $request): bool
     {
         return true;
     }
@@ -43,7 +43,7 @@ class DefaultContentElementIndexer implements ContentElementIndexerInterface
     /**
      * @inheritDoc
      */
-    public function generateContent(array $row, Node $node): string
+    public function generateContent(array $row, QueueRequest $request): string
     {
         if ($row['CType'] === 'table') {
             $row['bodytext'] = str_replace(["\t", ',', ';', '|'], ' ', $row['bodytext']);

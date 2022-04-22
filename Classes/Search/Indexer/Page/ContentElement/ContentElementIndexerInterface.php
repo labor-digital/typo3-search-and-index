@@ -40,7 +40,7 @@ namespace LaborDigital\T3sai\Search\Indexer\Page\ContentElement;
 
 
 use LaborDigital\T3ba\Core\Di\PublicServiceInterface;
-use LaborDigital\T3sai\Core\Indexer\Node\Node;
+use LaborDigital\T3sai\Core\Indexer\Queue\QueueRequest;
 
 interface ContentElementIndexerInterface extends PublicServiceInterface
 {
@@ -56,22 +56,22 @@ interface ContentElementIndexerInterface extends PublicServiceInterface
     /**
      * Receives the cType, the listType and the database row of the tt_content table
      *
-     * @param   string  $cType     The content element type that is set for this row
-     * @param   string  $listType  If the cType is "list" the list_type column defines the extBase plugin
-     * @param   array   $row       The raw database row that should be converted
-     * @param   Node    $node      The page node the content is part of
+     * @param   string        $cType     The content element type that is set for this row
+     * @param   string        $listType  If the cType is "list" the list_type column defines the extBase plugin
+     * @param   array         $row       The raw database row that should be converted
+     * @param   QueueRequest  $request   The request object that lead to the execution of this indexer
      *
      * @return bool
      */
-    public function canHandle(string $cType, string $listType, array $row, Node $node): bool;
+    public function canHandle(string $cType, string $listType, array $row, QueueRequest $request): bool;
     
     /**
      * Receives the row and should return the string version of it
      *
-     * @param   array                                       $row
-     * @param   \LaborDigital\T3sai\Core\Indexer\Node\Node  $node
+     * @param   array                                                $row
+     * @param   \LaborDigital\T3sai\Core\Indexer\Queue\QueueRequest  $request
      *
      * @return string
      */
-    public function generateContent(array $row, Node $node): string;
+    public function generateContent(array $row, QueueRequest $request): string;
 }

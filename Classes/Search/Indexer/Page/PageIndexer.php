@@ -27,7 +27,7 @@ use LaborDigital\T3sai\Core\Indexer\Node\Node;
 use LaborDigital\T3sai\Core\Indexer\Queue\QueueRequest;
 use LaborDigital\T3sai\Event\PageIndexNodeFilterEvent;
 use LaborDigital\T3sai\Event\PageListFilterEvent;
-use LaborDigital\T3sai\Search\Indexer\Page\ContentElement\ContentElementProcessor;
+use LaborDigital\T3sai\Search\Indexer\Page\ContentElement\PageContentProcessor;
 use LaborDigital\T3sai\Search\Indexer\Page\PageContent\PageContentResolver;
 use LaborDigital\T3sai\Search\Indexer\Page\PageData\PageDataMapper;
 use LaborDigital\T3sai\Search\Indexer\Page\PageData\PageDataResolver;
@@ -47,10 +47,10 @@ class PageIndexer implements RecordIndexerInterface
     /**
      * @var \LaborDigital\T3sai\Search\Indexer\Page\PageContent\PageContentResolver
      */
-    protected $contentResolver;
+    protected $ceResolver;
     
     /**
-     * @var \LaborDigital\T3sai\Search\Indexer\Page\ContentElement\ContentElementProcessor
+     * @var \LaborDigital\T3sai\Search\Indexer\Page\ContentElement\PageContentProcessor
      */
     protected $ceProcessor;
     
@@ -66,16 +66,16 @@ class PageIndexer implements RecordIndexerInterface
     
     public function __construct(
         PageDataResolver $dataResolver,
-        PageContentResolver $contentResolver,
-        ContentElementProcessor $ceProcessor,
         PageDataMapper $dataMapper,
+        PageContentResolver $ceResolver,
+        PageContentProcessor $ceProcessor,
         EventDispatcherInterface $eventDispatcher
     )
     {
         $this->dataResolver = $dataResolver;
-        $this->contentResolver = $contentResolver;
-        $this->ceProcessor = $ceProcessor;
         $this->dataMapper = $dataMapper;
+        $this->ceResolver = $ceResolver;
+        $this->ceProcessor = $ceProcessor;
         $this->eventDispatcher = $eventDispatcher;
     }
     
@@ -156,7 +156,7 @@ class PageIndexer implements RecordIndexerInterface
             $this->options
         );
         
-        foreach ($this->generateContents($element, $node) as $content) {
+        foreach ($this->generateContents($element, $request) as $content) {
             $node->addContent($content);
         }
         
@@ -168,16 +168,16 @@ class PageIndexer implements RecordIndexerInterface
     /**
      * Generates the list of content element contents of the page
      *
-     * @param   array                                       $element
-     * @param   \LaborDigital\T3sai\Core\Indexer\Node\Node  $node
+     * @param   array                                                $element
+     * @param   \LaborDigital\T3sai\Core\Indexer\Queue\QueueRequest  $request
      *
      * @return array
      */
-    protected function generateContents(array $element, Node $node): array
+    protected function generateContents(array $element, QueueRequest $request): array
     {
         return $this->ceProcessor->generateContent(
-            $node,
-            $this->contentResolver->makeContentIterator($element['uid'] ?? 0)
+            $this->ceResolver->makeContentIterator($element['uid'] ?? 0),
+            $request
         );
     }
     
