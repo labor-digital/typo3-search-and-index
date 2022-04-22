@@ -278,7 +278,7 @@ class QueueRequest implements NoDiInterface
         $clone = clone $this;
         $clone->node = $node;
         
-        return $this;
+        return $clone;
     }
     
     /**
