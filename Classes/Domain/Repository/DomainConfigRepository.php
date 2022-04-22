@@ -163,7 +163,8 @@ class DomainConfigRepository implements SingletonInterface
     {
         $filtered = [];
         foreach ($domains as $domainIdentifier => $domainConfig) {
-            if (in_array($language->getTwoLetterIsoCode(), $domainConfig['allowedLanguages'], true)) {
+            if (! $domainConfig['allowedLanguages'] ||
+                in_array($language->getTwoLetterIsoCode(), $domainConfig['allowedLanguages'], true)) {
                 $filtered[$domainIdentifier] = $domainConfig;
             }
         }
