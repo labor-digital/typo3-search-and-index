@@ -237,7 +237,8 @@ class DomainConfigurator implements NoDiInterface
     {
         $state->setAsJson($this->domainIdentifier, [
             'identifier' => $this->domainIdentifier,
-            'allowedLanguages' => array_map('strtolower', $this->allowedLanguages),
+            'allowedLanguages' => is_array($this->allowedLanguages) ?
+                array_map('strtolower', $this->allowedLanguages) : null,
             'tagTranslations' => $this->tagTranslations,
             'stopWords' => $this->stopWordLists->getAll(),
             'soundex' => $this->soundexGenerators->getAll(),
