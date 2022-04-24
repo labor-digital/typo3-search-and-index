@@ -101,7 +101,8 @@ class SearchRepository implements SingletonInterface
     }
     
     /**
-     * Returns a list of all currently stored tags in the database
+     * Returns a list of all currently stored tags in the database.
+     * The tags are provided as associative array with their display and input labels
      *
      * @param   array  $options   Additional options to use when looking up the tags
      *                            - domain string: By default, the best matching search domain (selected by site and language) will be used,

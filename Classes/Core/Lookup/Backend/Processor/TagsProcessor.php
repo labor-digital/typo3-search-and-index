@@ -24,11 +24,22 @@ namespace LaborDigital\T3sai\Core\Lookup\Backend\Processor;
 
 
 use LaborDigital\T3sai\Core\Lookup\Request\LookupRequest;
+use LaborDigital\T3sai\Core\Translation\Tags\TagTranslationProvider;
 use Neunerlei\Arrays\Arrays;
 
 class TagsProcessor implements LookupResultProcessorInterface
 {
     use ProcessorUtilTrait;
+    
+    /**
+     * @var \LaborDigital\T3sai\Core\Translation\Tags\TagTranslationProvider
+     */
+    protected $translator;
+    
+    public function __construct(TagTranslationProvider $translator)
+    {
+        $this->translator = $translator;
+    }
     
     /**
      * @inheritDoc
@@ -43,7 +54,18 @@ class TagsProcessor implements LookupResultProcessorInterface
      */
     public function process(iterable $rows, LookupRequest $request): array
     {
-        return Arrays::getList($this->iterableToArray($rows), 'tag');
+        $out = [];
+        
+        $domainConfig = $request->getDomainConfig();
+        
+        foreach (Arrays::getList($this->iterableToArray($rows), 'tag') as $tag) {
+            $out[$tag] = [
+                'label' => $this->translator->getTranslatedLabel($domainConfig, $tag),
+                'inputLabel' => $this->translator->getTranslatedInputLabel($domainConfig, $tag),
+            ];
+        }
+        
+        return $out;
     }
     
 }
