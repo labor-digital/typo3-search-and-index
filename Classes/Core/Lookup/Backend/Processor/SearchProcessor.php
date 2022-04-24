@@ -26,6 +26,7 @@ namespace LaborDigital\T3sai\Core\Lookup\Backend\Processor;
 use LaborDigital\T3ba\Tool\OddsAndEnds\SerializerUtil;
 use LaborDigital\T3sai\Core\Lookup\Request\LookupRequest;
 use LaborDigital\T3sai\Core\Soundex\SoundexGeneratorInterface;
+use Neunerlei\Inflection\Inflector;
 
 class SearchProcessor implements LookupResultProcessorInterface
 {
@@ -68,7 +69,8 @@ class SearchProcessor implements LookupResultProcessorInterface
         foreach ($rows as $row) {
             $content = $row['content'] ?? '';
             $content = $this->findMatchingContent($content, $matchPattern)
-                       ?? $this->findMatchingFuzzyContent($content, $fuzzyMatchWords);
+                       ?? $this->findMatchingFuzzyContent($content, $fuzzyMatchWords)
+                          ?? $this->findMatchingByLookingReallyHard($content, $request->getInput()->requiredWordLists);
             
             $row['contentMatch'] = $this->extractMatchingContent($content, $request->getContentMatchLength());
             $row['metaData'] = $this->unpackMetaData($row['meta_data'] ?? null);
@@ -98,6 +100,10 @@ class SearchProcessor implements LookupResultProcessorInterface
             }
         }
         
+        if (empty($patterns)) {
+            return '';
+        }
+        
         return '~(' . implode('|', array_unique($patterns)) . ')~ui';
     }
     
@@ -111,6 +117,10 @@ class SearchProcessor implements LookupResultProcessorInterface
      */
     protected function findMatchingContent(string $content, string $matchPattern): ?string
     {
+        if (empty($matchPattern)) {
+            return null;
+        }
+        
         $modifiedContent = preg_replace($matchPattern, '[match]$1[/match]', $content, -1, $count);
         
         if ($count !== 0) {
@@ -128,7 +138,7 @@ class SearchProcessor implements LookupResultProcessorInterface
      *
      * @return string
      */
-    protected function findMatchingFuzzyContent(string $content, array $matchWords): string
+    protected function findMatchingFuzzyContent(string $content, array $matchWords): ?string
     {
         $contentWords = $this->findSoundexValues($content);
         
@@ -141,7 +151,36 @@ class SearchProcessor implements LookupResultProcessorInterface
         
         $fuzzyPattern = $this->resolveMatchPattern(array_unique($searchWords));
         
-        return $this->findMatchingContent($content, $fuzzyPattern) ?? $content;
+        return $this->findMatchingContent($content, $fuzzyPattern);
+    }
+    
+    /**
+     * This is an expensive, last ditch effort to find at least some words that look similar in our
+     * match value by comparing the words through PHP
+     *
+     * @param   string  $content
+     * @param   array   $matchWords
+     *
+     * @return string
+     */
+    protected function findMatchingByLookingReallyHard(string $content, array $matchWords): string
+    {
+        $compMatchWords = array_map([Inflector::class, 'toComparable'], $matchWords);
+        $searchWords = [];
+        
+        foreach ($this->splitTextIntoWords($content) as $word) {
+            $compWord = Inflector::toComparable($word);
+            foreach ($compMatchWords as $compMatchWord) {
+                similar_text($compWord, $compMatchWord, $p);
+                if ($p > 85) {
+                    $searchWords[] = $word;
+                }
+            }
+        }
+        
+        $pattern = $this->resolveMatchPattern($searchWords);
+        
+        return $this->findMatchingContent($content, $pattern) ?? '';
     }
     
     /**
@@ -154,8 +193,7 @@ class SearchProcessor implements LookupResultProcessorInterface
     protected function findSoundexValues(string $text): array
     {
         $out = [];
-        $words = array_unique(array_map('strtolower', array_filter(explode(' ', $text))));
-        foreach ($words as $word) {
+        foreach ($this->splitTextIntoWords($text) as $word) {
             if (isset($this->soundexCache[$word])) {
                 $out[$word] = $this->soundexCache[$word];
                 continue;
@@ -211,5 +249,25 @@ class SearchProcessor implements LookupResultProcessorInterface
         }
         
         return SerializerUtil::unserializeJson($metaData);
+    }
+    
+    /**
+     * Internal helper to split up a given text into a list of comparable words
+     *
+     * @param   string  $text
+     *
+     * @return array
+     */
+    protected function splitTextIntoWords(string $text): array
+    {
+        return array_unique(
+            array_map('strtolower',
+                array_filter(
+                    explode(' ',
+                        preg_replace('~[^\\w\\s]*~', '', $text)
+                    )
+                )
+            )
+        );
     }
 }
