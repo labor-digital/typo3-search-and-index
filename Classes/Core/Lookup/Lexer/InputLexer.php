@@ -54,20 +54,20 @@ class InputLexer implements SingletonInterface
     {
         $this->reset();
         
-        $queryStringTrimmed = trim($input);
-        $queryLength = strlen($queryStringTrimmed);
+        $inputTrimmed = trim($input);
+        $queryLength = strlen($inputTrimmed);
         
         // We use the remaining quotes count to ensure the last list of words, containing a quote stays together
-        $this->remainingQuotes = substr_count($queryStringTrimmed, static::TOKEN_QUOTE);
+        $this->remainingQuotes = substr_count($inputTrimmed, static::TOKEN_QUOTE);
         
         $result = $this->initializeResult($input);
         
-        if (empty($queryStringTrimmed)) {
+        if (empty($inputTrimmed)) {
             return $result;
         }
         
         for ($i = 0; $i < $queryLength; $i++) {
-            $this->processChar($queryStringTrimmed[$i], $result);
+            $this->processChar($inputTrimmed[$i], $result);
         }
         
         $this->finishCurrentGroup($result);
