@@ -47,6 +47,9 @@ class MysqlSearchSqlQuery extends AbstractSqlQuery
                  '(' .
                  $this->expr()->sum('r.exact_match_priority') . ' * 100' .
                  ') + ' .
+                 '(' .
+                 $this->expr()->sum('r.exact_title_match_priority') . ' * 150' .
+                 ') + ' .
                  $this->expr()->sum('r.node_priority') . ' + ' .
                  // Add the average word priority to the node priority
                  '(' .
@@ -82,8 +85,10 @@ class MysqlSearchSqlQuery extends AbstractSqlQuery
         $qb = clone $this->qb;
         $qb->resetQueryParts();
         
+        // Find nodes through word table...
         $qb->from(static::TABLE_NODES, 'n')
            ->select('n.*')
+           ->addSelectLiteral('0 as ' . $this->qi('exact_title_match_priority'))
            ->addSelectLiteral('0 as ' . $this->qi('exact_match_priority'))
            ->addSelectLiteral('1 as ' . $this->qi('word_count'))
            ->addSelectLiteral($this->qi('w.priority') . ' as ' . $this->qi('word_priority'))
@@ -92,12 +97,14 @@ class MysqlSearchSqlQuery extends AbstractSqlQuery
            ->getConcreteQueryBuilder()
            ->leftJoin($this->qi('n'), static::TABLE_WORDS, $this->qi('w'), 'n.id = w.id');
         
+        // Finde nodes by exact match...
         $qb2 = clone $this->qb;
         $qb2->resetQueryParts();
         $qb2->from(static::TABLE_NODES, 'n')
             ->select('*')
-            ->addSelectLiteral('0 as ' . $this->qi('word_count'))
+            ->addSelectLiteral('0 as ' . $this->qi('exact_title_match_priority'))
             ->addSelectLiteral('1 as ' . $this->qi('exact_match_priority'))
+            ->addSelectLiteral('0 as ' . $this->qi('word_count'))
             ->addSelectLiteral('0 as ' . $this->qi('word_priority'))
             ->addSelectLiteral($this->qi('n.priority') . ' AS ' . $this->qi('node_priority'));
         
@@ -107,7 +114,24 @@ class MysqlSearchSqlQuery extends AbstractSqlQuery
         }
         $qb2->where($this->expr()->orX(...$wordListConstraints));
         
-        return $qb . ' UNION(' . $qb2 . ')';
+        // Find nodes by exact match in the title... -> super high priority
+        $qb3 = clone $this->qb;
+        $qb3->resetQueryParts();
+        $qb3->from(static::TABLE_NODES, 'n')
+            ->select('*')
+            ->addSelectLiteral('1 as ' . $this->qi('exact_title_match_priority'))
+            ->addSelectLiteral('0 as ' . $this->qi('exact_match_priority'))
+            ->addSelectLiteral('0 as ' . $this->qi('word_count'))
+            ->addSelectLiteral('0 as ' . $this->qi('word_priority'))
+            ->addSelectLiteral($this->qi('n.priority') . ' AS ' . $this->qi('node_priority'));
+        
+        $wordListConstraints = [];
+        foreach ($this->input->requiredWordLists as $wordList) {
+            $wordListConstraints[] = $this->expr()->like('title', $this->q('%' . $wordList . '%'));
+        }
+        $qb3->where($this->expr()->orX(...$wordListConstraints));
+        
+        return $qb . ' UNION ' . $qb2 . ' UNION ' . $qb3;
     }
     
     protected function buildLimiterQueryWrap(string $nodeQuery): string
