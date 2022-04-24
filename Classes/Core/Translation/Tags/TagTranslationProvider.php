@@ -25,6 +25,7 @@ namespace LaborDigital\T3sai\Core\Translation\Tags;
 
 use LaborDigital\T3ba\Tool\Translation\Translator;
 use LaborDigital\T3sai\Core\Lookup\Lexer\ParsedInput;
+use Neunerlei\Inflection\Inflector;
 
 class TagTranslationProvider
 {
@@ -70,7 +71,8 @@ class TagTranslationProvider
      */
     public function getTranslatedLabel(array $domainConfig, string $tag): string
     {
-        return $this->translateLabel($domainConfig, $tag, 'label');
+        return $this->translateLabel($domainConfig, $tag, 'label')
+               ?? Inflector::toHuman($tag);
     }
     
     /**
@@ -83,7 +85,7 @@ class TagTranslationProvider
      */
     public function getTranslatedInputLabel(array $domainConfig, string $tag): string
     {
-        return $this->translateLabel($domainConfig, $tag, 'inputLabel');
+        return $this->translateLabel($domainConfig, $tag, 'inputLabel') ?? $tag;
     }
     
     /**
@@ -121,12 +123,12 @@ class TagTranslationProvider
         return array_unique($out);
     }
     
-    protected function translateLabel(array $domainConfig, string $tag, string $type): string
+    protected function translateLabel(array $domainConfig, string $tag, string $type): ?string
     {
         $label = $domainConfig['tagTranslations'][$tag][$type] ?? null;
         
         if (! $label) {
-            return $tag;
+            return null;
         }
         
         return $this->translator->translate($label);
