@@ -181,10 +181,7 @@ class SearchRepository implements SingletonInterface
      * @param   string  $input    The input to find the autocomplete results for
      * @param   array   $options  Additional options to use while finding the results
      *                            - maxItems int: Sets the maximal number of search results returned by this method.
-     *                            By default, all search results will be returned only limited by "maxTagItems".
-     *                            WARNING: If "maxTagItems" is set, this setting will be ignored
      *                            - offset int: Sets the offset from the top of the result list to return.
-     *                            WARNING: If "maxTagItems" is set, this setting will be ignored
      *                            - domain string: By default, the best matching search domain (selected by site and language) will be used,
      *                            you can use this option to force the search to use a specific domain with the given identifier instead.
      *                            - site string|SiteInterface: By default, the current TYPO3 site will be used for the search.
