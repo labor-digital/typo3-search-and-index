@@ -120,4 +120,9 @@ class SearchResultPaginator extends AbstractPaginator implements NoDiInterface
         return $this->items;
     }
     
+    public function getNumberOfItems(): int
+    {
+        return $this->getTotalAmountOfItems();
+    }
+    
 }
