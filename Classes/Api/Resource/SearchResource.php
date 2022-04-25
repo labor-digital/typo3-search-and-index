@@ -148,6 +148,9 @@ class SearchResource extends AbstractResource
         $args = $resourceQuery->getAdditional();
         
         // Use the query parameters to configure the repository
+        if (! empty($args['tags'])) {
+            $options['tags'] = Arrays::makeFromStringList($args['tags']);
+        }
         if (isset($args['maxTagItems'])) {
             $options['maxTagItems'] = max(1, min(5000, (int)$args['maxTagItems']));
         }

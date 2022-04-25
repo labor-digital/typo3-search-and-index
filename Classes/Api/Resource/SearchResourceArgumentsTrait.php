@@ -25,7 +25,6 @@ namespace LaborDigital\T3sai\Api\Resource;
 
 use LaborDigital\T3fa\Core\Resource\Query\ResourceQuery;
 use League\Route\Http\Exception\BadRequestException;
-use Neunerlei\Arrays\Arrays;
 
 trait SearchResourceArgumentsTrait
 {
@@ -53,9 +52,6 @@ trait SearchResourceArgumentsTrait
         $options = [];
         if (! empty($args['L'])) {
             $options['language'] = (int)$args['L'];
-        }
-        if (! empty($args['tags'])) {
-            $options['tags'] = Arrays::makeFromStringList($args['tags']);
         }
         if (! empty($args['domain'])) {
             $options['domain'] = $args['domain'];
