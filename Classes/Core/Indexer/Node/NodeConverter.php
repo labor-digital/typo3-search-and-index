@@ -24,6 +24,7 @@ namespace LaborDigital\T3sai\Core\Indexer\Node;
 
 
 use LaborDigital\T3ba\Tool\OddsAndEnds\SerializerUtil;
+use LaborDigital\T3sai\Core\Indexer\Node\Converter\ImageConverter;
 use LaborDigital\T3sai\Core\Indexer\Node\Converter\LinkConverter;
 use LaborDigital\T3sai\Core\Indexer\Node\Converter\PriorityCalculator;
 use LaborDigital\T3sai\Core\Indexer\Node\Converter\TextConverter;
@@ -54,6 +55,11 @@ class NodeConverter implements SingletonInterface
     protected $wordExtractor;
     
     /**
+     * @var \LaborDigital\T3sai\Core\Indexer\Node\Converter\ImageConverter
+     */
+    protected $imageConverter;
+    
+    /**
      * @var \LaborDigital\T3sai\Core\Indexer\Node\Converter\PriorityCalculator
      */
     protected $priorityCalculator;
@@ -82,6 +88,7 @@ class NodeConverter implements SingletonInterface
         TextConverter $contentConverter,
         LinkConverter $linkConverter,
         WordExtractor $wordExtractor,
+        ImageConverter $imageConverter,
         PriorityCalculator $priorityCalculator,
         StopWordListFactory $stopWordListFactory,
         EventDispatcherInterface $eventDispatcher,
@@ -91,6 +98,7 @@ class NodeConverter implements SingletonInterface
         $this->textConverter = $contentConverter;
         $this->linkConverter = $linkConverter;
         $this->wordExtractor = $wordExtractor;
+        $this->imageConverter = $imageConverter;
         $this->priorityCalculator = $priorityCalculator;
         $this->stopWordListFactory = $stopWordListFactory;
         $this->eventDispatcher = $eventDispatcher;
@@ -150,7 +158,8 @@ class NodeConverter implements SingletonInterface
             'url' => $this->linkConverter->convertLink($node->getHardLink(), $node->getLink()),
             'title' => $this->generateTitle($textList),
             'description' => $this->textConverter->mergeTexts($textList['description']),
-            'image' => $this->linkConverter->convertImage($node->getImage()),
+            'image' => $this->imageConverter->convertImageToLink($node->getImage()),
+            'image_source' => $this->imageConverter->convertImageToSource($node->getImage()),
             'content' => $this->generateContent($textList),
             'set_keywords' => $this->textConverter->mergeTexts($textList['keywords']),
             'priority' => $this->priorityCalculator->calculateNodePriority($node->getTimestamp(), $node->getPriority(), $wordList),

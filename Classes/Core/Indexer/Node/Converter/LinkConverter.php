@@ -66,45 +66,4 @@ class LinkConverter
         
         return $linkString;
     }
-    
-    /**
-     * Tries to extract a provided node image or iterable of images into a single image url
-     *
-     * @param $image
-     *
-     * @return string
-     */
-    public function convertImage($image): string
-    {
-        if (is_iterable($image)) {
-            $image = $this->extractImageFromIterable($image);
-        }
-        
-        if (empty($image)) {
-            return '';
-        }
-        
-        /** @noinspection BypassedUrlValidationInspection */
-        if (is_string($image) && filter_var($image, FILTER_VALIDATE_URL)) {
-            return $image;
-        }
-        
-        return $this->linkService->getFileLink($image);
-    }
-    
-    /**
-     * Extracts the first item in an iterable and returns it
-     *
-     * @param   iterable  $images
-     *
-     * @return mixed|null
-     */
-    protected function extractImageFromIterable(iterable $images)
-    {
-        foreach ($images as $i) {
-            return $i;
-        }
-        
-        return null;
-    }
 }
