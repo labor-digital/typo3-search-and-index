@@ -27,6 +27,7 @@ use LaborDigital\T3sai\Core\Lookup\Lexer\ParsedInput;
 use LaborDigital\T3sai\Core\Lookup\Request\LookupRequest;
 use LaborDigital\T3sai\Core\Soundex\SoundexGeneratorInterface;
 use LaborDigital\T3sai\Core\StopWords\StopWordListInterface;
+use Neunerlei\Arrays\Arrays;
 
 class AutocompleteProcessor implements LookupResultProcessorInterface
 {
@@ -81,14 +82,19 @@ class AutocompleteProcessor implements LookupResultProcessorInterface
             if (isset($row['content'])) {
                 $this->processNodeRow($out, $lastWord, $row);
             } else {
+                $isWordCompletion = true;
                 $this->processWordRow($out, $lastWord, $row);
             }
+        }
+        
+        if (isset($isWordCompletion)) {
+            $out = $this->resortWordCompletionsByPriority($out);
         }
         
         $out = array_values($out);
         
         // The SQL query is allowed to add a "padding" to the list of resolved rows
-        // in order to buffer potentially removed stopwords. So we need to slice
+        // in order to buffer potentially removed stopwords or inflections. So we need to slice
         // away additional rows that would exceed the given limit
         if ($request->getMaxItems() !== null) {
             $out = array_slice($out, 0, $request->getMaxItems());
@@ -141,9 +147,18 @@ class AutocompleteProcessor implements LookupResultProcessorInterface
             return;
         }
         
+        // If there are not at least 3 chars more to complete the word
+        // we simply ignore it, because it is probably just some kind of inflection...
+        $lastWordLength = strlen($lastWord);
+        $lengthDiff = strlen($word) - $lastWordLength;
+        if ($lengthDiff < 3) {
+            return;
+        }
+        
         $list[md5($word)] = [
             'content' => substr($this->input->string, -strlen($lastWord)) . substr($word, strlen($lastWord)),
             'contentMatch' => '[match]' . substr($this->input->string, -strlen($lastWord)) . '[/match]' . substr($word, strlen($lastWord)),
+            'priority' => $row['sort_priority'] + ($row['sort_priority'] / $lastWordLength * $lengthDiff),
         ];
     }
     
@@ -185,5 +200,23 @@ class AutocompleteProcessor implements LookupResultProcessorInterface
         $parts = explode(' ', $this->input->lastWordList);
         
         return end($parts);
+    }
+    
+    /**
+     * As the string length difference is considered to add additional priority for word completions,
+     * which is not an easy task in a DB implementation (every db has its own function to do it...)
+     * we need to resort the results here.
+     *
+     * @param   array  $list
+     *
+     * @return array
+     */
+    protected function resortWordCompletionsByPriority(array $list): array
+    {
+        usort($list, static function (array $a, array $b) {
+            return $a['priority'] < $b['priority'];
+        });
+        
+        return Arrays::getList($list, ['content', 'contentMatch']) ?? [];
     }
 }
