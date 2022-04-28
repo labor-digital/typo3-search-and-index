@@ -75,7 +75,8 @@ class GermanSoundexGenerator implements SoundexGeneratorInterface
             return '';
         }
         
-        $len = strlen($value);
+        $value = mb_strtolower($value);
+        $len = mb_strlen($value);
         
         $result = [];
         
