@@ -24,6 +24,7 @@ namespace LaborDigital\T3sai\Core\Indexer\Node;
 
 
 use LaborDigital\T3ba\Tool\OddsAndEnds\SerializerUtil;
+use LaborDigital\T3sai\Core\Indexer\Dictionary\NerfWordList;
 use LaborDigital\T3sai\Core\Indexer\Node\Converter\ImageConverter;
 use LaborDigital\T3sai\Core\Indexer\Node\Converter\LinkConverter;
 use LaborDigital\T3sai\Core\Indexer\Node\Converter\PriorityCalculator;
@@ -80,9 +81,9 @@ class NodeConverter implements SingletonInterface
     protected $soundexGeneratorFactory;
     
     /**
-     * @var \LaborDigital\T3sai\Core\Soundex\SoundexGeneratorInterface
+     * @var \LaborDigital\T3sai\Core\Indexer\Dictionary\NerfWordList
      */
-    protected $soundexGenerator;
+    protected $nerfWordList;
     
     public function __construct(
         TextConverter $contentConverter,
@@ -92,7 +93,8 @@ class NodeConverter implements SingletonInterface
         PriorityCalculator $priorityCalculator,
         StopWordListFactory $stopWordListFactory,
         EventDispatcherInterface $eventDispatcher,
-        SoundexGeneratorFactory $soundexGeneratorFactory
+        SoundexGeneratorFactory $soundexGeneratorFactory,
+        NerfWordList $nerfWordList
     )
     {
         $this->textConverter = $contentConverter;
@@ -103,17 +105,17 @@ class NodeConverter implements SingletonInterface
         $this->stopWordListFactory = $stopWordListFactory;
         $this->eventDispatcher = $eventDispatcher;
         $this->soundexGeneratorFactory = $soundexGeneratorFactory;
+        $this->nerfWordList = $nerfWordList;
     }
     
     public function convertToArray(Node $node): array
     {
         $this->validateTitle($node);
         
-        $this->soundexGenerator = $this->soundexGeneratorFactory
-            ->makeSoundexGenerator($node->getDomainConfig(), $node->getLanguage()->getTwoLetterIsoCode());
-        
         $textList = $this->generateTextList($node);
         $wordList = $this->generateWordList($node, $textList);
+        
+        $this->nerfWordList->learnWords($wordList);
         
         $nodeRow = $this->makeNodeRow($node, $textList, $wordList);
         $wordRows = $this->makeWordRows($node, $wordList);
@@ -144,15 +146,19 @@ class NodeConverter implements SingletonInterface
     
     protected function generateWordList(Node $node, array $textList): array
     {
+        $domainConfig = $node->getDomainConfig();
+        $langaugeCode = $node->getLanguage()->getTwoLetterIsoCode();
+        
         return $this->priorityCalculator->calculateWordPriority(
             $this->wordExtractor->extractWords(
-                $this->stopWordListFactory->makeStopWordList($node->getDomainConfig(), $node->getLanguage()->getTwoLetterIsoCode()),
+                $this->stopWordListFactory->makeStopWordList($domainConfig, $langaugeCode),
+                $this->soundexGeneratorFactory->makeSoundexGenerator($domainConfig, $langaugeCode),
                 $textList
             )
         );
     }
     
-    protected function makeNodeRow(Node $node, array $textList, array $wordList): array
+    protected function makeNodeRow(Node $node, array $textList, array $priorities): array
     {
         return $this->initializeDbRow($node, [
             'url' => $this->linkConverter->convertLink($node->getHardLink(), $node->getLink()),
@@ -162,7 +168,7 @@ class NodeConverter implements SingletonInterface
             'image_source' => $this->imageConverter->convertImageToSource($node->getImage()),
             'content' => $this->generateContent($textList),
             'set_keywords' => $this->textConverter->mergeTexts($textList['keywords']),
-            'priority' => $this->priorityCalculator->calculateNodePriority($node->getTimestamp(), $node->getPriority(), $wordList),
+            'priority' => $this->priorityCalculator->calculateNodePriority($node->getTimestamp(), $node->getPriority(), $priorities),
             'timestamp' => (new DateTimy($node->getTimestamp()))->formatSql(),
             'meta_data' => $node->getMetaData() === null ? '' : SerializerUtil::serializeJson($node->getMetaData()),
         ]);
@@ -171,12 +177,12 @@ class NodeConverter implements SingletonInterface
     protected function makeWordRows(Node $node, array $wordList): array
     {
         $rows = [];
-        
-        foreach ($wordList as $word => $priority) {
+        foreach ($wordList as $word => $data) {
             $rows[] = $this->initializeDbRow($node, [
                 'word' => substr($word, 0, 256),
-                'priority' => $priority,
-                'soundex' => $this->soundexGenerator->generate($word),
+                'priority' => $data['priority'],
+                'soundex' => $data['soundex'],
+                'is_keyword' => $data['isKeyword'] ? '1' : '0',
             ]);
         }
         

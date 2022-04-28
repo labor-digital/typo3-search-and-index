@@ -25,6 +25,7 @@ namespace LaborDigital\T3sai\Configuration\ExtConfig;
 
 use LaborDigital\T3ba\ExtConfig\ExtConfigContext;
 use LaborDigital\T3ba\ExtConfigHandler\Di\DefaultDiConfig;
+use LaborDigital\T3sai\Core\Indexer\Queue\Implementation\DictionaryHandler;
 use LaborDigital\T3sai\Core\Indexer\Queue\Implementation\DomainHandler;
 use LaborDigital\T3sai\Core\Indexer\Queue\Implementation\EnvironmentSimulationHandler;
 use LaborDigital\T3sai\Core\Indexer\Queue\Implementation\LanguageHandler;
@@ -65,6 +66,7 @@ class Di extends DefaultDiConfig
                      service(DomainHandler::class),
                      service(LanguageHandler::class),
                      service(EnvironmentSimulationHandler::class),
+                     service(DictionaryHandler::class),
                      service(RecordIndexerHandler::class),
                      service(NodeHandler::class),
                  ]);

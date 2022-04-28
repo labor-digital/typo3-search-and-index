@@ -23,6 +23,7 @@ declare(strict_types=1);
 namespace LaborDigital\T3sai\Core\Indexer\Node\Converter;
 
 
+use LaborDigital\T3sai\Core\Soundex\SoundexGeneratorInterface;
 use LaborDigital\T3sai\Core\StopWords\StopWordListInterface;
 
 class WordExtractor
@@ -31,12 +32,17 @@ class WordExtractor
      * Receives the output of {@link \LaborDigital\T3sai\Core\Indexer\Node\Converter\TextConverter::convertText()}
      * and extracts a prioritized
      *
-     * @param   \LaborDigital\T3sai\Core\StopWords\StopWordListInterface  $stopWordList
-     * @param   array                                                     $textList
+     * @param   \LaborDigital\T3sai\Core\StopWords\StopWordListInterface    $stopWordList
+     * @param   \LaborDigital\T3sai\Core\Soundex\SoundexGeneratorInterface  $soundexGenerator
+     * @param   array                                                       $textList
      *
      * @return array
      */
-    public function extractWords(StopWordListInterface $stopWordList, array $textList): array
+    public function extractWords(
+        StopWordListInterface $stopWordList,
+        SoundexGeneratorInterface $soundexGenerator,
+        array $textList
+    ): array
     {
         $list = [];
         
@@ -54,6 +60,7 @@ class WordExtractor
                             'occurrencesInTexts' => 0,
                             'isKeyword' => false,
                             'isStopWord' => false,
+                            'soundex' => $soundexGenerator->generate($word),
                         ];
                     }
                     

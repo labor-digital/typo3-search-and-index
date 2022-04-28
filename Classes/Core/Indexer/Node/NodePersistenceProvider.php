@@ -97,10 +97,8 @@ class NodePersistenceProvider
         }
         unset($nodeRow, $nodeWordRows);
         
-        $wordRows = array_merge(...$wordRows);
-        
         $this->repository->persistRows(SearchRepository::TABLE_NODES, $nodeRows);
-        $this->repository->persistRows(SearchRepository::TABLE_WORDS, $wordRows);
+        $this->repository->persistRows(SearchRepository::TABLE_WORDS, array_merge(...$wordRows));
         
         $this->nodes = [];
     }

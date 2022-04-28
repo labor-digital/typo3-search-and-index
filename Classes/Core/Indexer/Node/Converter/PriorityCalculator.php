@@ -40,7 +40,8 @@ class PriorityCalculator
     public function calculateNodePriority(DateTime $timestamp, float $nodePriority, array $wordList): float
     {
         // Modify priority based on content
-        $wordPriority = array_sum($wordList) / max(1, count($wordList));
+        $wordPriorities = array_column($wordList, 'priority');
+        $wordPriority = array_sum($wordPriorities) / max(1, count($wordPriorities));
         $wordPriority = (min($wordPriority, $nodePriority) / max($nodePriority, $wordPriority, 1)) * 100;
         
         $tmp = $nodePriority + (min(100, $wordPriority) / 3);
@@ -55,8 +56,7 @@ class PriorityCalculator
     
     /**
      * Receives the output of {@link \LaborDigital\T3sai\Core\Indexer\Node\Converter\WordExtractor::extractWords()}
-     * and calculates the priority for each word and returns an array with the word as key, and the
-     * calculated priority as value
+     * and calculates the priority for each word and returns the updated array, with the "priority" correctly calcualted
      *
      * @param   array  $wordList
      *
@@ -64,44 +64,43 @@ class PriorityCalculator
      */
     public function calculateWordPriority(array $wordList): array
     {
-        $list = [];
-        
         $maxPriority = 0;
         foreach ($wordList as $word => $data) {
             // Don't calculate stop words
             if ($data['isStopWord']) {
-                $list[$word] = 0;
+                $wordList[$word]['priority'] = 0;
                 continue;
             }
             
-            $priority = max($data['priority'], 10);
-            // Add additional priority based on the word length (+5% points per character)
-            $priority += ($priority * 0.05 * strlen($word));
+            $basePriority = max($data['priority'], 10);
+            $priority = $basePriority;
+            // Add additional priority based on the word length (+1% points per character)
+            $priority += ($basePriority * 0.01 * mb_strlen($word));
             // Add additional priority based on the occurrences of the word (+10% per occurrence)
-            $priority += ($priority * 0.1 * $data['occurrences']);
-            // Add additional priority for each text part the word occurred in (+20% per occurrence)
-            $priority += ($priority * 0.2 * $data['occurrencesInTexts']);
-            
-            // Buff keywords
-            if ($data['isKeyword']) {
-                $priority *= 2;
-            }
+            $priority += ($basePriority * 0.1 * $data['occurrences']);
+            // Add additional priority for each text part the word occurred in (+5% per occurrence)
+            $priority += ($basePriority * 0.05 * $data['occurrencesInTexts']);
             
             // Detect max priority
             if ($priority > $maxPriority) {
                 $maxPriority = $priority;
             }
             
-            $list[$word] = $priority;
+            $wordList[$word]['priority'] = $priority;
         }
         
         // Unify the priorities to a range between 0 - 100
+        $mod = $maxPriority / 100;
         if ($maxPriority !== 0) {
-            foreach ($list as $word => $priority) {
-                $list[$word] = $priority / $maxPriority * 100;
+            foreach ($wordList as $word => $data) {
+                $wordList[$word]['priority'] = ($data['priority'] / $maxPriority) * $mod * 100;
+                
+                if ($data['isKeyword']) {
+                    $wordList[$word]['priority'] += 100;
+                }
             }
         }
         
-        return $list;
+        return $wordList;
     }
 }

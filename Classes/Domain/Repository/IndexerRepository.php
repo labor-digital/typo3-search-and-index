@@ -51,20 +51,18 @@ class IndexerRepository
      *
      * @return void
      */
-    public function persistRows(string $tableName, array $rows): void
+    public function persistRows(string $tableName, iterable $rows): void
     {
         if (! in_array($tableName, [static::TABLE_NODES, static::TABLE_WORDS], true)) {
             throw new InvalidArgumentException('Invalid table name: "' . $tableName . '" given!');
         }
         
         $query = $this->db->getQuery($tableName);
-        foreach (array_chunk($rows, 50) as $chunk) {
-            $query->runInTransaction(static function () use ($chunk, $query) {
-                foreach ($chunk as $row) {
-                    $query->insert($row);
-                }
-            });
-        }
+        $query->runInTransaction(static function () use ($rows, $query) {
+            foreach ($rows as $row) {
+                $query->insert($row);
+            }
+        });
     }
     
     /**
@@ -105,5 +103,38 @@ class IndexerRepository
         $this->db
             ->getQuery(static::TABLE_WORDS)
             ->withWhere(['active !=' => '1'])->delete();
+    }
+    
+    /**
+     * Basically a post processor to reset the priority of the list of words in $nerfWords
+     * for all WORD rows that match the given criteria.
+     *
+     * @param   iterable  $nerfWords
+     * @param   string    $siteIdentifier
+     * @param   string    $domainIdentifier
+     * @param   string    $languageCode
+     *
+     * @return void
+     */
+    public function applyNerfWords(iterable $nerfWords, string $siteIdentifier, string $domainIdentifier, string $languageCode): void
+    {
+        $words = $nerfWords instanceof \Traversable ? iterator_to_array($nerfWords, false) : (array)$nerfWords;
+        
+        if (empty($words)) {
+            return;
+        }
+        
+        $this->db
+            ->getQuery(static::TABLE_WORDS)
+            ->withWhere([
+                'site' => $siteIdentifier,
+                'domain' => $domainIdentifier,
+                'lang' => $languageCode,
+                'priority >' => '0',
+                'active' => '0',
+                'is_keyword' => '0',
+                'word IN' => $words,
+            ])
+            ->update(['priority' => '0.001']);
     }
 }
