@@ -144,16 +144,15 @@ class RequestFactory
         $domainConfig = $this->configRepository->findDomainConfig($domainIdentifier, $site);
         
         $parsedInput = $this->lexer->parse($input ?? '');
-        if ($input !== null) {
-            $this->tagTranslator->resolveTranslationsInParsedInput($domainConfig, $parsedInput);
-            $parsedInput = $this->eventDispatcher->dispatch(new LookupInputFilterEvent($parsedInput))->getInput();
-        }
         
         // If we got tags in our options they take precedence over the tags provided by the search query
         if (! empty($options['tags'])) {
             $parsedInput->requiredTags = $options['tags'];
             $parsedInput->deniedTags = array_diff($parsedInput->deniedTags, $options['tags']);
         }
+        
+        $this->tagTranslator->resolveTranslationsInParsedInput($domainConfig, $parsedInput);
+        $parsedInput = $this->eventDispatcher->dispatch(new LookupInputFilterEvent($parsedInput))->getInput();
         
         return [
             $type,
