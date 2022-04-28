@@ -41,4 +41,33 @@ trait ProcessorUtilTrait
         
         return $out;
     }
+    
+    /**
+     * Internal helper to split up a given text into a list of comparable words
+     *
+     * @param   string  $text
+     * @param   bool    $forHumans  If set to true punctuation and casing will be kept intact
+     *
+     * @return array
+     */
+    protected function splitTextIntoWords(string $text, bool $forHumans = false): array
+    {
+        if ($forHumans) {
+            return array_values(
+                array_filter(
+                    explode(' ', $text)
+                )
+            );
+        }
+        
+        return array_values(
+            array_unique(
+                array_filter(
+                    explode(' ',
+                        preg_replace('~[^\\w\\s]*~u', '', $text)
+                    )
+                )
+            )
+        );
+    }
 }

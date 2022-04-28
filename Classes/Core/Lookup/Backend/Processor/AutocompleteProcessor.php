@@ -31,6 +31,8 @@ use Neunerlei\Arrays\Arrays;
 
 class AutocompleteProcessor implements LookupResultProcessorInterface
 {
+    use ProcessorUtilTrait;
+    
     /**
      * @var ParsedInput
      */
@@ -82,16 +84,11 @@ class AutocompleteProcessor implements LookupResultProcessorInterface
             if (isset($row['content'])) {
                 $this->processNodeRow($out, $lastWord, $row);
             } else {
-                $isWordCompletion = true;
                 $this->processWordRow($out, $lastWord, $row);
             }
         }
         
-        if (isset($isWordCompletion)) {
-            $out = $this->resortWordCompletionsByPriority($out);
-        }
-        
-        $out = array_values($out);
+        $out = array_values($this->resortWordCompletionsByPriority($out));
         
         // The SQL query is allowed to add a "padding" to the list of resolved rows
         // in order to buffer potentially removed stopwords or inflections. So we need to slice
@@ -114,20 +111,57 @@ class AutocompleteProcessor implements LookupResultProcessorInterface
      */
     protected function processNodeRow(array &$list, string $lastWord, array $row): void
     {
-        preg_match_all('~' . preg_quote($lastWord, '~') . '\\s(.*?)(\\s|$)~ui', $row['content'], $m);
+        $pattern = '~' . preg_quote($lastWord, '~') . '\\s(.*?)([\\s.,;%!?]|$)~ui';
+        preg_match_all($pattern, $row['content'], $m);
         if (empty($m[1] ?? null)) {
-            return;
+            preg_match_all($pattern, $row['set_keywords'], $m);
+            if (empty($m[1] ?? null)) {
+                return;
+            }
         }
         
+        $addWord = static function (string $word, array &$list, ParsedInput $input, float $priority): void {
+            $list[md5($word)] = [
+                'content' => rtrim($input->string) . ' ' . $word,
+                'contentMatch' => '[match]' . rtrim($input->string) . '[/match] ' . $word,
+                'priority' => $priority,
+            ];
+        };
+        
+        $found = false;
         foreach ($m[1] as $word) {
-            if ($this->isSimilarWord($word) || $this->stopWordList->isStopWord(strtolower($word))) {
+            if ($this->isSimilarWord($word) || $this->stopWordList->isStopWord(mb_strtolower($word))) {
                 continue;
             }
             
-            $list[md5($word)] = [
-                'content' => rtrim($this->input->string) . ' ' . $word,
-                'contentMatch' => '[match]' . rtrim($this->input->string) . '[/match] ' . $word,
-            ];
+            $found = true;
+            $addWord($word, $list, $this->input, 1);
+        }
+        
+        if ($found) {
+            return;
+        }
+        
+        // If we did not find anything useful we look at other words after the word until we find something useful
+        $pos = mb_stripos($row['content'], $lastWord);
+        if (! $pos) {
+            return;
+        }
+        
+        $content = mb_substr($row['content'], $pos + mb_strlen($lastWord));
+        $words = $this->splitTextIntoWords($content, true);
+        for ($i = 0; $i < 10; $i++) {
+            $word = $words[$i] ?? null;
+            if (! $word) {
+                break;
+            }
+            
+            if ($this->isSimilarWord($word) || $this->stopWordList->isStopWord(mb_strtolower($word))) {
+                continue;
+            }
+            
+            $addWord($word, $list, $this->input, 0);
+            break;
         }
     }
     
@@ -149,17 +183,24 @@ class AutocompleteProcessor implements LookupResultProcessorInterface
         
         // If there are not at least 3 chars more to complete the word
         // we simply ignore it, because it is probably just some kind of inflection...
-        $lastWordLength = strlen($lastWord);
-        $lengthDiff = strlen($word) - $lastWordLength;
-        if ($lengthDiff < 3) {
+        $lastWordLength = mb_strlen($lastWord);
+        $lengthDiff = mb_strlen($word) - $lastWordLength;
+        if ($lengthDiff < 2) {
             return;
         }
         
+        $input = $this->input->string;
+        $lastWordLength = mb_strlen($lastWord);
+        
+        $prefix = mb_substr($input, 0, -$lastWordLength);
+        $match = mb_substr($input, -$lastWordLength);
+        $suffix = mb_substr($word, mb_strlen($lastWord));
         $list[md5($word)] = [
-            'content' => substr($this->input->string, -strlen($lastWord)) . substr($word, strlen($lastWord)),
-            'contentMatch' => '[match]' . substr($this->input->string, -strlen($lastWord)) . '[/match]' . substr($word, strlen($lastWord)),
+            'content' => $prefix . $match . $suffix,
+            'contentMatch' => $prefix . '[match]' . $match . '[/match]' . $suffix,
             'priority' => $row['sort_priority'] + ($row['sort_priority'] / $lastWordLength * $lengthDiff),
         ];
+        
     }
     
     /**

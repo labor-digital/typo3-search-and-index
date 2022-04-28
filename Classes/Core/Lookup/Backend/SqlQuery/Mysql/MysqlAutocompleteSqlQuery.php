@@ -97,7 +97,9 @@ class MysqlAutocompleteSqlQuery extends AbstractSqlQuery
             $this->expr()->andX(
                 $this->expr()->orX(
                     $this->expr()->like('content', $this->q('% ' . $lastWord . ' %')),
-                    $this->expr()->like('content', $this->q($lastWord . ' %'))
+                    $this->expr()->like('content', $this->q($lastWord . ' %')),
+                    $this->expr()->like('set_keywords', $this->q('% ' . $lastWord . ' %')),
+                    $this->expr()->like('set_keywords', $this->q($lastWord . ' %'))
                 ),
                 // This will remove the content block separators
                 $this->expr()->notLike('content', $this->q('% ' . $lastWord . ' [...%')),

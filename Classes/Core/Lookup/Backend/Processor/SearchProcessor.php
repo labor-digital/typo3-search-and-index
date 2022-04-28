@@ -26,10 +26,13 @@ namespace LaborDigital\T3sai\Core\Lookup\Backend\Processor;
 use LaborDigital\T3ba\Tool\OddsAndEnds\SerializerUtil;
 use LaborDigital\T3sai\Core\Lookup\Request\LookupRequest;
 use LaborDigital\T3sai\Core\Soundex\SoundexGeneratorInterface;
+use Neunerlei\Arrays\Arrays;
 use Neunerlei\Inflection\Inflector;
 
 class SearchProcessor implements LookupResultProcessorInterface
 {
+    use ProcessorUtilTrait;
+    
     /**
      * @var SoundexGeneratorInterface
      */
@@ -61,16 +64,20 @@ class SearchProcessor implements LookupResultProcessorInterface
         $this->soundexGenerator = $request->getSoundexGenerator();
         $this->soundexCache = [];
         
-        $matchPattern = $this->resolveMatchPattern($request->getInput()->requiredWordLists);
-        $fuzzyMatchWords = $this->findSoundexValues(implode(' ', $request->getInput()->requiredWordLists));
+        $matchWordLists = $request->getInput()->requiredWordLists;
+        $matchPattern = $this->resolveMatchPattern($matchWordLists);
+        $fuzzyMatchWords = $this->findSoundexValues(implode(' ', $matchWordLists));
         
         $out = [];
         
         foreach ($rows as $row) {
+            $localMatchPattern
+                = $this->resolveLocalMatchPattern($row['distinct_words'] ?? null, $matchWordLists)
+                  ?? $matchPattern;
             $content = $row['content'] ?? '';
-            $content = $this->findMatchingContent($content, $matchPattern)
+            $content = $this->findMatchingContent($content, $localMatchPattern)
                        ?? $this->findMatchingFuzzyContent($content, $fuzzyMatchWords)
-                          ?? $this->findMatchingByLookingReallyHard($content, $request->getInput()->requiredWordLists);
+                          ?? $this->findMatchingByLookingReallyHard($content, $matchWordLists);
             
             $row['contentMatch'] = $this->extractMatchingContent($content, $request->getContentMatchLength());
             $row['metaData'] = $this->unpackMetaData($row['meta_data'] ?? null);
@@ -94,7 +101,7 @@ class SearchProcessor implements LookupResultProcessorInterface
         $patterns = [];
         
         foreach ($matchWordLists as $list) {
-            $patterns[] = preg_quote($list, '~');
+            $patterns[] = preg_quote((string)$list, '~');
             foreach (explode(' ', $list) as $word) {
                 $patterns[] = preg_quote($word, '~');
             }
@@ -105,6 +112,20 @@ class SearchProcessor implements LookupResultProcessorInterface
         }
         
         return '~(' . implode('|', array_unique($patterns)) . ')~ui';
+    }
+    
+    protected function resolveLocalMatchPattern(?string $distinctWords, array $matchWordLists): ?string
+    {
+        if (! $distinctWords) {
+            return null;
+        }
+        
+        $finds = Arrays::makeFromStringList($distinctWords);
+        if (empty($finds)) {
+            return null;
+        }
+        
+        return $this->resolveMatchPattern(array_merge($finds, $matchWordLists));
     }
     
     /**
@@ -219,20 +240,56 @@ class SearchProcessor implements LookupResultProcessorInterface
             return '';
         }
         
-        $pos = max(0, stripos($content, '[match]') - $contentMatchLength / 4);
-        $cParts = explode(' ', substr($content, $pos));
+        // Split up the text into "blocks" of strings "before" the match, the actual "match",
+        // and the text "after" the match until the next match....
+        $lastBlock = '';
+        $blocksByMatch = [];
+        foreach (explode('[match]', $content) as $block) {
+            $matchEndPos = mb_strpos($block, '[/match]');
+            if (! $matchEndPos) {
+                $lastBlock = $block;
+                continue;
+            }
+            
+            $match = mb_substr($block, 0, $matchEndPos);
+            $blocksByMatch[Inflector::toComparable($match)][] = [
+                'before' => $lastBlock,
+                'match' => $match,
+                'after' => mb_substr($block, $matchEndPos + 8),
+            ];
+            $lastBlock = $block;
+        }
+        unset($lastBlock);
         
-        // Remove probably broken first word when this is not the start of the string
-        if ($pos !== 0) {
-            array_shift($cParts);
+        $matchedContent = [];
+        $matches = array_keys($blocksByMatch);
+        $matchIdx = 0;
+        $loops = 0;
+        
+        // In order to distribute the list of "finds" evenly between the matches
+        // we iterate the comparable matches and iterate them one by one. This might
+        // break the order inside the content, but helps the usability
+        $matchLength = 0;
+        while ($matchLength < $contentMatchLength) {
+            if ($loops++ > 20) {
+                break;
+            }
+            
+            $match = $matches[$matchIdx];
+            $block = array_shift($blocksByMatch[$match]);
+            if (! $block) {
+                continue;
+            }
+            
+            $blockContent = $this->generateMatchForBlock($block);
+            $matchedContent[] = $blockContent;
+            $matchLength += mb_strlen($blockContent);
+            if (++$matchIdx >= count($matches)) {
+                $matchIdx = 0;
+            }
         }
         
-        $c = '';
-        while (strlen($c) <= $contentMatchLength && ! empty($cParts)) {
-            $c .= rtrim(' ' . trim(array_shift($cParts), ' .,'));
-        }
-        
-        return ($pos === 0 ? '' : '...') . trim($c) . (empty($cParts) ? '' : '...');
+        return implode(' [...] ', $matchedContent);
     }
     
     /**
@@ -252,22 +309,32 @@ class SearchProcessor implements LookupResultProcessorInterface
     }
     
     /**
-     * Internal helper to split up a given text into a list of comparable words
+     * Internal helper for extractMatchingContent to convert a match block into a match string.
      *
-     * @param   string  $text
+     * @param   array  $block
      *
-     * @return array
+     * @return string
      */
-    protected function splitTextIntoWords(string $text): array
+    protected function generateMatchForBlock(array $block): string
     {
-        return array_unique(
-            array_map('strtolower',
-                array_filter(
-                    explode(' ',
-                        preg_replace('~[^\\w\\s]*~', '', $text)
-                    )
-                )
-            )
-        );
+        $pattern = '~\[/match]|\[\.\.\.] $~';
+        $wordsBeforeMatch = array_slice($this->splitTextIntoWords(
+            trim(preg_replace($pattern, '', $block['before'])), true), -5);
+        $spaceBeforeMatch = str_ends_with($block['before'], ' ');
+        $wordBeforeMatch = array_pop($wordsBeforeMatch);
+        $wordsAfterMatch = array_slice($this->splitTextIntoWords(
+            trim(preg_replace($pattern, '', $block['after'])), true), 0, 5);
+        $spaceAfterMatch = str_starts_with($block['after'], ' ');
+        $wordAfterMatch = array_shift($wordsAfterMatch);
+        
+        return implode(' ', array_merge(
+            $wordsBeforeMatch,
+            [
+                $wordBeforeMatch . ($spaceBeforeMatch ? ' ' : '') .
+                '[match]' . $block['match'] . '[/match]' .
+                ($spaceAfterMatch ? ' ' : '') . $wordAfterMatch,
+            ],
+            $wordsAfterMatch
+        ));
     }
 }
