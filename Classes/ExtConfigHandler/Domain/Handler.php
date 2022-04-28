@@ -25,13 +25,13 @@ namespace LaborDigital\T3sai\ExtConfigHandler\Domain;
 
 use LaborDigital\T3ba\ExtConfig\Abstracts\AbstractGroupExtConfigHandler;
 use LaborDigital\T3ba\ExtConfig\Interfaces\SiteBasedHandlerInterface;
+use LaborDigital\T3sai\Core\Soundex\SoundexGeneratorInterface;
+use LaborDigital\T3sai\Core\StopWords\StopWordListInterface;
 use LaborDigital\T3sai\ExtConfigHandler\Domain\Internal\IndexerList;
 use LaborDigital\T3sai\ExtConfigHandler\Domain\Internal\LanguageClassList;
 use LaborDigital\T3sai\ExtConfigHandler\Domain\Internal\SiteMapConfigurator;
 use LaborDigital\T3sai\Search\Indexer\Page\ContentElement\ContentElementIndexerInterface;
 use LaborDigital\T3sai\Search\Indexer\RecordIndexerInterface;
-use LaborDigital\T3sai\Soundex\SoundexGeneratorInterface;
-use LaborDigital\T3sai\StopWords\StopWordListInterface;
 use Neunerlei\Configuration\Handler\HandlerConfigurator;
 
 class Handler extends AbstractGroupExtConfigHandler implements SiteBasedHandlerInterface
