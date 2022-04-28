@@ -89,6 +89,21 @@ class TagTranslationProvider
     }
     
     /**
+     * Performs the reverse operation of getTranslatedInputLabel() by translating a localized input label back to a tag
+     *
+     * @param   array   $domainConfig
+     * @param   string  $inputLabel
+     *
+     * @return string
+     */
+    public function getTagByTranslatedInputLabel(array $domainConfig, string $inputLabel): string
+    {
+        $map = $this->getInputTagMap($domainConfig);
+        
+        return $this->translateTagList([$inputLabel], $map)[0];
+    }
+    
+    /**
      * Resolves a map of TagTranslations => actualTag to resolve incoming, translated tags with.
      *
      * @param   array  $domainConfig
