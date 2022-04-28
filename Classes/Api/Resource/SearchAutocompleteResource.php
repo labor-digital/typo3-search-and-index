@@ -33,6 +33,7 @@ use LaborDigital\T3fa\ExtConfigHandler\Api\Resource\ResourceConfigurator;
 use LaborDigital\T3sai\Domain\Repository\SearchRepository;
 use Neunerlei\Inflection\Inflector;
 use Psr\EventDispatcher\EventDispatcherInterface;
+use Throwable;
 
 class SearchAutocompleteResource extends AbstractResource
 {
@@ -82,7 +83,11 @@ class SearchAutocompleteResource extends AbstractResource
         
         $items = $this->repository->findAutocompleteResults($input, $options);
         $items = array_map(static function (array $item) {
-            $item['id'] = Inflector::toUuid(SerializerUtil::serializeJson($item));
+            try {
+                $item['id'] = Inflector::toUuid(SerializerUtil::serializeJson($item));
+            } catch (Throwable $e) {
+                $item['id'] = 0;
+            }
             
             return $item;
         }, $items);
