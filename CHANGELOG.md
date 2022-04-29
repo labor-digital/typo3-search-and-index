@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [10.0.1](https://github.com/labor-digital/typo3-search-and-index/compare/v10.0.0...v10.0.1) (2022-04-29)
+
+
+### Bug Fixes
+
+* **SearchProcessor:** additional cleanup for rendering the contentMatch ([55a7b1c](https://github.com/labor-digital/typo3-search-and-index/commit/55a7b1cfc8a0f0a7b86271f91a397122b1261c04))
+
 ## [10.0.0](https://github.com/labor-digital/typo3-search-and-index/compare/v9.3.2...v10.0.0) (2022-04-29)
 
 
