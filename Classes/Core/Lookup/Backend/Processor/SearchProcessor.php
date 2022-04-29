@@ -289,7 +289,10 @@ class SearchProcessor implements LookupResultProcessorInterface
             }
         }
         
-        return implode(' [...] ', $matchedContent);
+        $result = implode(' [...] ', $matchedContent);
+        $result = trim(preg_replace('~^\[\.\.\.]|\[\.\.\.]$|\[\.\.\.]\\s+\[\.\.\.]~', '', $result));
+        
+        return '... ' . $result . ' ...';
     }
     
     /**
