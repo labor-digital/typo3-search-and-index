@@ -2,6 +2,49 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [10.0.0](https://github.com/labor-digital/typo3-search-and-index/compare/v9.3.2...v10.0.0) (2022-04-29)
+
+
+### ⚠ BREAKING CHANGES
+
+* Complete rewrite of the logic to be a lot cleaner and
+easier to extend through the DI container magic. Breaks a lot of the
+current contracts
+* Requires TYPO3 v10 Also breaks all APIs to be future
+proof
+
+### Features
+
+* bump version to support v10 ([33bf4a6](https://github.com/labor-digital/typo3-search-and-index/commit/33bf4a6d512f570b1e3cf02ce905b1d6ac81d750))
+* **Autocomplete:** remove some junk (like inflections) from autocomplete results ([04aaaa4](https://github.com/labor-digital/typo3-search-and-index/commit/04aaaa43be3880051ca64b1e9fa2eb4090b9fbcd))
+* **Event:** re-add resource filter events ([32bb344](https://github.com/labor-digital/typo3-search-and-index/commit/32bb3448180252aa444ba1445b2ab71ffc4b291c))
+* **Indexer:** calculate "nerfWords" to apply a penalty to common words ([c67886b](https://github.com/labor-digital/typo3-search-and-index/commit/c67886b33c78b9e930bc8ec6cf90abf21d06b7cd))
+* **Indexer:** index internal image sources to allow lookup through FAL later ([3fc4a84](https://github.com/labor-digital/typo3-search-and-index/commit/3fc4a84245e83716a8472dc5666c6d991a8ae74c))
+* **Lookup:** multiple improvements when retrieving search and autocomplete results ([c9f4950](https://github.com/labor-digital/typo3-search-and-index/commit/c9f4950466a385051755941390cda1a28bfb93fe))
+* **Mysql:** use exact match in the "title" of a node as high priority find ([252faea](https://github.com/labor-digital/typo3-search-and-index/commit/252faea282604b4ace3278af935ab4a499d1b0c5))
+* **SearchRepository:** return tags including translation labels ([03f4329](https://github.com/labor-digital/typo3-search-and-index/commit/03f43292f9d4157916fcae1d6de97ba1966b947e))
+* **SearchResource:** allow setting the "site" parameter via query ([10f5653](https://github.com/labor-digital/typo3-search-and-index/commit/10f56533bc0046993e046d3bdacbe8f26c316559))
+* **T3fa:** implement integration into the frontend api ([f47ade7](https://github.com/labor-digital/typo3-search-and-index/commit/f47ade7d7468296ed6feb7e9850e7c4f5f4d314e))
+* **Tags:** make fallback labels more readable ([eb0dea1](https://github.com/labor-digital/typo3-search-and-index/commit/eb0dea1a1adcb05477e1daa554d0687a74b91393))
+* **TagTranslationProvider:** implement getTagByTranslatedInputLabel utility ([213a61c](https://github.com/labor-digital/typo3-search-and-index/commit/213a61c1a7c443ce777380b6acce367cac681617))
+* major refactoring and upgrade for v10 ([33cdaf2](https://github.com/labor-digital/typo3-search-and-index/commit/33cdaf28988973a39bbc993959445dcf6fab77c9))
+
+
+### Bug Fixes
+
+* **AutocompleteResource:** handle invalid item serialization ([72f52b9](https://github.com/labor-digital/typo3-search-and-index/commit/72f52b9aad362013c72646ef5b5bdc8c11ccc483))
+* **AutocompleteResource:** remove not supported "tags" option ([3134f16](https://github.com/labor-digital/typo3-search-and-index/commit/3134f162d50946f7296f7e6e88eabcf7b237b6e0))
+* **DomainConfigRepository:** allow NULL value in 'allowedLanguages' ([b074160](https://github.com/labor-digital/typo3-search-and-index/commit/b074160fb19ff03c09c42d42e4da69f0ed34530b))
+* **DomainConfigurator:** don't apply array_map when allowedLanguages is null ([650130a](https://github.com/labor-digital/typo3-search-and-index/commit/650130aa4d0a47d181da8c39bcf28a5c6f765f37))
+* **ExtConfig:** use the correct interfaces for stoundex and stopword list collectors ([a465574](https://github.com/labor-digital/typo3-search-and-index/commit/a465574bde7f3ff9e9c6cb3907a11878d2f4a77f))
+* **GermanSoundexGenerator:** use mb_ string functions where possible ([2b64b1c](https://github.com/labor-digital/typo3-search-and-index/commit/2b64b1c668f1eaae38ad415c6088f944d3932098))
+* **GermanStopWords:** ensure umlauts in stopwords are parsed correctly ([7c7d55e](https://github.com/labor-digital/typo3-search-and-index/commit/7c7d55eee3c4c9d6156554923cb3aa0666502b5e))
+* **Lookup\RequestFactory:** translate tags provided by options, too ([d3ca6f2](https://github.com/labor-digital/typo3-search-and-index/commit/d3ca6f239480772934cecd28038313f0c1b65a35))
+* **ProcessorUtilTrait:** simplify iterableToArray ([b72ea96](https://github.com/labor-digital/typo3-search-and-index/commit/b72ea96af41055b074062bbae7655242c512fc2b))
+* **QueueRequest:** return $clone instead of $this in withNode() ([9026bf5](https://github.com/labor-digital/typo3-search-and-index/commit/9026bf5824f44c9472e0756a63dd2d24c5c6cedb))
+* **SearchProcessor:** ensure that no empty match patterns are created ([34459c7](https://github.com/labor-digital/typo3-search-and-index/commit/34459c796b45dfbfe83a52a3272f4333d3aff152))
+* **SearchRepository:** fix some incorrect documentation parts ([77f6ba1](https://github.com/labor-digital/typo3-search-and-index/commit/77f6ba1ade476b2afc7fec3638b4b3c8e16f730b))
+
 ### [9.3.2](https://github.com/labor-digital/typo3-search-and-index/compare/v9.3.1...v9.3.2) (2021-05-11)
 
 

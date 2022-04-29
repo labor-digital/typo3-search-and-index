@@ -30,7 +30,7 @@
 			"LaborDigital\\T3sai\\": "Classes"
 		}
 	},
-	"version": "9.3.2",
+	"version": "10.0.0",
 	"extra": {
 		"T3BA": {
 			"isDev": true
