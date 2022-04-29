@@ -140,3 +140,4 @@ which of our package(s) you are using.
 Our address is: LABOR.digital - Fischtorplatz 21 - 55116 Mainz, Germany
 
 We publish all received postcards on our [company website](https://labor.digital). 
+
