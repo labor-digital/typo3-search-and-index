@@ -23,6 +23,8 @@ declare(strict_types=1);
 namespace LaborDigital\T3sai\Core\Lookup\Backend\Processor;
 
 
+use Traversable;
+
 trait ProcessorUtilTrait
 {
     /**
@@ -34,12 +36,7 @@ trait ProcessorUtilTrait
      */
     protected function iterableToArray(iterable $rows): array
     {
-        $out = [];
-        foreach ($rows as $row) {
-            $out[] = $row;
-        }
-        
-        return $out;
+        return $rows instanceof Traversable ? iterator_to_array($rows, false) : (array)$rows;
     }
     
     /**
