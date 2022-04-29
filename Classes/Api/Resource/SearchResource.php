@@ -33,6 +33,7 @@ use LaborDigital\T3sai\Api\Util\ApiSearchResultPaginator;
 use LaborDigital\T3sai\Core\Lookup\Backend\Processor\ProcessorUtilTrait;
 use LaborDigital\T3sai\Domain\Repository\ImageRepository;
 use LaborDigital\T3sai\Domain\Repository\SearchRepository;
+use LaborDigital\T3sai\Event\SearchResourceFilterEvent;
 use Neunerlei\Arrays\Arrays;
 use Psr\EventDispatcher\EventDispatcherInterface;
 
@@ -77,7 +78,7 @@ class SearchResource extends AbstractResource
      */
     public function findCollection(ResourceQuery $resourceQuery, ResourceCollectionContext $context)
     {
-        $args = $this->prepareArguments($resourceQuery, $context);
+        $args = $this->prepareArguments($resourceQuery);
         [$input, $options] = $args;
         
         $this->processFlags($args, $context);
@@ -85,8 +86,8 @@ class SearchResource extends AbstractResource
         return new ApiSearchResultPaginator(
             $input,
             $options,
-            function (iterable $items) use ($resourceQuery) {
-                return $this->processItemsForOutput($resourceQuery, $items);
+            function (iterable $items) use ($resourceQuery, $context) {
+                return $this->processItemsForOutput($items, $resourceQuery, $context);
             }
         );
     }
@@ -136,13 +137,12 @@ class SearchResource extends AbstractResource
      * Receives the resource query and the context to prepare the options and the query string
      * or the used repository methods
      *
-     * @param   \LaborDigital\T3fa\Core\Resource\Query\ResourceQuery                           $resourceQuery
-     * @param   \LaborDigital\T3fa\Core\Resource\Repository\Context\ResourceCollectionContext  $context
+     * @param   \LaborDigital\T3fa\Core\Resource\Query\ResourceQuery  $resourceQuery
      *
      * @return array
      * @throws \League\Route\Http\Exception\BadRequestException
      */
-    protected function prepareArguments(ResourceQuery $resourceQuery, ResourceCollectionContext $context): array
+    protected function prepareArguments(ResourceQuery $resourceQuery): array
     {
         [$input, $options] = $this->prepareCommonArguments($resourceQuery);
         $args = $resourceQuery->getAdditional();
@@ -164,17 +164,15 @@ class SearchResource extends AbstractResource
         } elseif (is_string($args['with'])) {
             $flags = Arrays::makeFromStringList($args['with']);
         }
-
-//        $this->eve->dispatch(($e = new SearchResourceQueryFilterEvent(
-//            $request, $context, $options, $query
-//        )));
-//        $query = $e->getQuery();
-//        $options = $e->getOptions();
         
         return [$input, $options, $flags];
     }
     
-    protected function processItemsForOutput(ResourceQuery $resourceQuery, iterable $items): array
+    protected function processItemsForOutput(
+        iterable $items,
+        ResourceQuery $resourceQuery,
+        ResourceCollectionContext $context
+    ): array
     {
         $processedItems = Arrays::getList(
             $this->iterableToArray($items),
@@ -210,9 +208,9 @@ class SearchResource extends AbstractResource
             return $row;
         }, $processedItems, $items);
         
-        // @todo add filter event
-        
-        return $processedItems;
+        return $this->eventDispatcher->dispatch(
+            new SearchResourceFilterEvent($processedItems, $resourceQuery, $context)
+        )->getItems();
     }
     
     /**

@@ -31,6 +31,7 @@ use LaborDigital\T3fa\Core\Resource\Repository\Context\ResourceCollectionContext
 use LaborDigital\T3fa\Core\Resource\Repository\Context\ResourceContext;
 use LaborDigital\T3fa\ExtConfigHandler\Api\Resource\ResourceConfigurator;
 use LaborDigital\T3sai\Domain\Repository\SearchRepository;
+use LaborDigital\T3sai\Event\AutocompleteResourceFilterEvent;
 use Neunerlei\Inflection\Inflector;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Throwable;
@@ -92,8 +93,9 @@ class SearchAutocompleteResource extends AbstractResource
             return $item;
         }, $items);
         
-        // @todo allow filtering
-        return $items;
+        return $this->eventDispatcher->dispatch(
+            new AutocompleteResourceFilterEvent($items, $resourceQuery, $context)
+        )->getItems();
     }
     
     /**
