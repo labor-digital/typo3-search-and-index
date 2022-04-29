@@ -83,6 +83,7 @@ Additionally, there are the following arguments:
 - L (int|string): Either a two char iso language code, or a sys language uid to find the results for. If omitted, the current frontend langauge will be used.
 - tags (string): A comma separated list of tags in which the results must be findable
 - domain (string): The identifier of a specific search domain to find the results in
+- site (string): By default, the current TYPO3 site will be used for the search. This option can be used to target a specific site.
 - maxTagItems (int): A limiter of how many entries PER TAG should be returned
 - contentMatchLength (int): Defines how many chars the "contentMatch" field can contain in the results
 - with (string): A comma separated list of additional flags while resolving the results.
@@ -101,6 +102,7 @@ Additionally, there are the following arguments:
 - input (string) **REQUIRED**: The urlencoded input string to find the results for
 - L (int|string): Either a two char iso language code, or a sys language uid to find the results for. If omitted, the current frontend langauge will be used.
 - domain (string): The identifier of a specific search domain to find the results in
+- site (string): By default, the current TYPO3 site will be used for the search. This option can be used to target a specific site.
 
 #### Sitemap Bundle
 

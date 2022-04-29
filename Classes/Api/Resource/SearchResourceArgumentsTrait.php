@@ -56,6 +56,9 @@ trait SearchResourceArgumentsTrait
         if (! empty($args['domain'])) {
             $options['domain'] = $args['domain'];
         }
+        if (! empty($args['site'])) {
+            $options['site'] = $args['site'];
+        }
         
         return [$input, $options];
     }
