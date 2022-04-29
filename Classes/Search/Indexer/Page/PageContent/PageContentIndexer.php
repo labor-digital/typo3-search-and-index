@@ -14,22 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * Last modified: 2022.04.12 at 20:42
+ * Last modified: 2022.04.29 at 10:12
  */
 
 declare(strict_types=1);
 
 
-namespace LaborDigital\T3sai\Search\Indexer\Page\ContentElement;
+namespace LaborDigital\T3sai\Search\Indexer\Page\PageContent;
 
 
 use LaborDigital\T3ba\Core\Di\ContainerAwareTrait;
+use LaborDigital\T3sai\Core\Indexer\Node\Node;
 use LaborDigital\T3sai\Core\Indexer\Queue\QueueRequest;
-use LaborDigital\T3sai\Search\Indexer\Page\PageContent\PageContentIterator;
+use LaborDigital\T3sai\Search\Indexer\Page\ContentElement\ContentElementIndexerInterface;
+use LaborDigital\T3sai\Search\Indexer\Page\ContentElement\DefaultContentElementIndexer;
 use Neunerlei\TinyTimy\DateTimy;
 use RecursiveIteratorIterator;
 
-class PageContentProcessor
+class PageContentIndexer
 {
     use ContainerAwareTrait;
     
@@ -72,20 +74,19 @@ class PageContentProcessor
     }
     
     /**
-     * Generates the list of content strings from the list of page contents
+     * Iterates all given elements and applies the matching content element indexers to fill the provided node's content
      *
-     * @param   \LaborDigital\T3sai\Search\Indexer\Page\PageContent\PageContentIterator  $content
-     * @param   \LaborDigital\T3sai\Core\Indexer\Queue\QueueRequest                      $request
+     * @param   \LaborDigital\T3sai\Search\Indexer\Page\PageContent\PageContentIterator  $contents
+     * @param   \LaborDigital\T3sai\Core\Indexer\Node\Node                               $node
+     * @param   \LaborDigital\T3sai\Core\Indexer\Queue\QueueRequest|null                 $request
      *
-     * @return array
+     * @return void
      */
-    public function generateContent(PageContentIterator $content, QueueRequest $request): array
+    public function index(PageContentIterator $contents, Node $node, QueueRequest $request): void
     {
         $this->latestTimestamp = 0;
         
-        $contents = [];
-        
-        foreach (new RecursiveIteratorIterator($content) as $row) {
+        foreach (new RecursiveIteratorIterator($contents) as $row) {
             $cType = ! empty($row['CType']) ? $row['CType'] : '';
             $listType = ! empty($row['list_type']) ? $row['list_type'] : '';
             
@@ -98,11 +99,9 @@ class PageContentProcessor
                     continue;
                 }
                 
-                $contents[] = trim($indexer->generateContent($row, $request));
+                $indexer->index($row, $node, $request);
             }
         }
-        
-        return array_filter($contents);
     }
     
     /**

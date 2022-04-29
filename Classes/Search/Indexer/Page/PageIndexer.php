@@ -27,9 +27,9 @@ use LaborDigital\T3sai\Core\Indexer\Node\Node;
 use LaborDigital\T3sai\Core\Indexer\Queue\QueueRequest;
 use LaborDigital\T3sai\Event\PageIndexNodeFilterEvent;
 use LaborDigital\T3sai\Event\PageListFilterEvent;
-use LaborDigital\T3sai\Search\Indexer\Page\ContentElement\PageContentProcessor;
+use LaborDigital\T3sai\Search\Indexer\Page\PageContent\PageContentIndexer;
 use LaborDigital\T3sai\Search\Indexer\Page\PageContent\PageContentResolver;
-use LaborDigital\T3sai\Search\Indexer\Page\PageData\PageDataMapper;
+use LaborDigital\T3sai\Search\Indexer\Page\PageData\PageDataIndexer;
 use LaborDigital\T3sai\Search\Indexer\Page\PageData\PageDataResolver;
 use LaborDigital\T3sai\Search\Indexer\RecordIndexerInterface;
 use Neunerlei\Options\Options;
@@ -47,17 +47,17 @@ class PageIndexer implements RecordIndexerInterface
     /**
      * @var \LaborDigital\T3sai\Search\Indexer\Page\PageContent\PageContentResolver
      */
-    protected $ceResolver;
+    protected $contentResolver;
     
     /**
-     * @var \LaborDigital\T3sai\Search\Indexer\Page\ContentElement\PageContentProcessor
+     * @var \LaborDigital\T3sai\Search\Indexer\Page\PageContent\PageContentIndexer
      */
-    protected $ceProcessor;
+    protected $contentIndexer;
     
     /**
-     * @var \LaborDigital\T3sai\Search\Indexer\Page\PageData\PageDataMapper
+     * @var \LaborDigital\T3sai\Search\Indexer\Page\PageData\PageDataIndexer
      */
-    protected $dataMapper;
+    protected $dataIndexer;
     
     /**
      * @var \Psr\EventDispatcher\EventDispatcherInterface
@@ -66,16 +66,16 @@ class PageIndexer implements RecordIndexerInterface
     
     public function __construct(
         PageDataResolver $dataResolver,
-        PageDataMapper $dataMapper,
-        PageContentResolver $ceResolver,
-        PageContentProcessor $ceProcessor,
+        PageDataIndexer $dataIndexer,
+        PageContentResolver $contentResolver,
+        PageContentIndexer $contentIndexer,
         EventDispatcherInterface $eventDispatcher
     )
     {
         $this->dataResolver = $dataResolver;
-        $this->dataMapper = $dataMapper;
-        $this->ceResolver = $ceResolver;
-        $this->ceProcessor = $ceProcessor;
+        $this->dataIndexer = $dataIndexer;
+        $this->contentResolver = $contentResolver;
+        $this->contentIndexer = $contentIndexer;
         $this->eventDispatcher = $eventDispatcher;
     }
     
@@ -134,7 +134,7 @@ class PageIndexer implements RecordIndexerInterface
      */
     public function resolve(QueueRequest $request): iterable
     {
-        $this->ceProcessor->initializeIndexers(
+        $this->contentIndexer->initializeIndexers(
             $request->getDomainConfig()['indexer']['contentElement'] ?? []
         );
         
@@ -150,35 +150,21 @@ class PageIndexer implements RecordIndexerInterface
      */
     public function index($element, Node $node, QueueRequest $request): void
     {
-        $this->dataMapper->mapPageToNode(
-            $node,
+        $this->dataIndexer->index(
             $element,
+            $node,
             $this->options
         );
         
-        foreach ($this->generateContents($element, $request) as $content) {
-            $node->addContent($content);
-        }
-        
-        $node->setTimestamp($this->ceProcessor->getLatestTimestamp());
-        
-        $this->eventDispatcher->dispatch(new PageIndexNodeFilterEvent($request, $element, $this->options));
-    }
-    
-    /**
-     * Generates the list of content element contents of the page
-     *
-     * @param   array                                                $element
-     * @param   \LaborDigital\T3sai\Core\Indexer\Queue\QueueRequest  $request
-     *
-     * @return array
-     */
-    protected function generateContents(array $element, QueueRequest $request): array
-    {
-        return $this->ceProcessor->generateContent(
-            $this->ceResolver->makeContentIterator($element['uid'] ?? 0),
+        $this->contentIndexer->index(
+            $this->contentResolver->makeContentIterator($element['uid'] ?? 0),
+            $node,
             $request
         );
+        
+        $node->setTimestamp($this->contentIndexer->getLatestTimestamp());
+        
+        $this->eventDispatcher->dispatch(new PageIndexNodeFilterEvent($request, $element, $this->options));
     }
     
 }

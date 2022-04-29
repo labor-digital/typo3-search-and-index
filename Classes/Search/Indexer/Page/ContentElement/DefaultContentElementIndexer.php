@@ -23,6 +23,7 @@ declare(strict_types=1);
 namespace LaborDigital\T3sai\Search\Indexer\Page\ContentElement;
 
 
+use LaborDigital\T3sai\Core\Indexer\Node\Node;
 use LaborDigital\T3sai\Core\Indexer\Queue\QueueRequest;
 
 class DefaultContentElementIndexer implements ContentElementIndexerInterface
@@ -43,12 +44,14 @@ class DefaultContentElementIndexer implements ContentElementIndexerInterface
     /**
      * @inheritDoc
      */
-    public function generateContent(array $row, QueueRequest $request): string
+    public function index(array $row, Node $node, QueueRequest $request): void
     {
         if ($row['CType'] === 'table') {
             $row['bodytext'] = str_replace(["\t", ',', ';', '|'], ' ', $row['bodytext']);
         }
         
-        return $row['header'] . ' ' . $row['subheader'] . ' ' . $row['bodytext'];
+        $node->addContent($row['header'], 50)
+             ->addContent($row['subheader'], 20)
+             ->addContent($row['bodytext']);
     }
 }

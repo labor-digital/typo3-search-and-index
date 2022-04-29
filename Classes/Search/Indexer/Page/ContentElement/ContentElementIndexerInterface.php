@@ -40,6 +40,7 @@ namespace LaborDigital\T3sai\Search\Indexer\Page\ContentElement;
 
 
 use LaborDigital\T3ba\Core\Di\PublicServiceInterface;
+use LaborDigital\T3sai\Core\Indexer\Node\Node;
 use LaborDigital\T3sai\Core\Indexer\Queue\QueueRequest;
 
 interface ContentElementIndexerInterface extends PublicServiceInterface
@@ -66,12 +67,13 @@ interface ContentElementIndexerInterface extends PublicServiceInterface
     public function canHandle(string $cType, string $listType, array $row, QueueRequest $request): bool;
     
     /**
-     * Receives the row and should return the string version of it
+     * Receives the row and should use the contents to extend the given node with
      *
+     * @param   \LaborDigital\T3sai\Core\Indexer\Node\Node           $node
      * @param   array                                                $row
      * @param   \LaborDigital\T3sai\Core\Indexer\Queue\QueueRequest  $request
      *
-     * @return string
+     * @return void
      */
-    public function generateContent(array $row, QueueRequest $request): string;
+    public function index(array $row, Node $node, QueueRequest $request): void;
 }

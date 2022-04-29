@@ -24,6 +24,8 @@ namespace LaborDigital\T3sai\Search\Indexer\Page\ContentElement;
 
 
 use LaborDigital\T3ba\Core\Di\ContainerAwareTrait;
+use LaborDigital\T3ba\Tool\Tca\ContentType\Domain\AbstractDataModel;
+use LaborDigital\T3ba\Tool\Tca\ContentType\Domain\ContentRepository;
 
 abstract class AbstractContentElementIndexer implements ContentElementIndexerInterface
 {
@@ -44,4 +46,23 @@ abstract class AbstractContentElementIndexer implements ContentElementIndexerInt
         $this->options = $options;
     }
     
+    /**
+     * Returns the instance of the content repository, to read and write the tt_content records with.
+     *
+     * @return \LaborDigital\T3ba\Tool\Tca\ContentType\Domain\ContentRepository
+     */
+    protected function getContentRepository(): ContentRepository
+    {
+        return $this->makeInstance(ContentRepository::class);
+    }
+    
+    /**
+     * Returns a new instance of the data model for the tt_content record linked to this content element/plugin
+     *
+     * @return mixed
+     */
+    protected function getDataModel(array $row): AbstractDataModel
+    {
+        return $this->getContentRepository()->hydrateModel($row);
+    }
 }

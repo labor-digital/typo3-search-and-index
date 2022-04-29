@@ -28,7 +28,7 @@ use LaborDigital\T3ba\Tool\Link\Link;
 use LaborDigital\T3sai\Core\Indexer\Node\Node;
 use Psr\EventDispatcher\EventDispatcherInterface;
 
-class PageDataMapper
+class PageDataIndexer
 {
     /**
      * @var \LaborDigital\T3ba\Tool\Fal\FalService
@@ -61,7 +61,7 @@ class PageDataMapper
         $this->eventDispatcher = $eventDispatcher;
     }
     
-    public function mapPageToNode(Node $node, array $data, array $options): void
+    public function index(array $data, Node $node, array $options): void
     {
         $this->node = $node;
         $this->data = $data;
