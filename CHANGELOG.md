@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [10.1.0](https://github.com/labor-digital/typo3-search-and-index/compare/v10.0.1...v10.1.0) (2022-06-22)
+
+
+### Features
+
+* add extended logging for indexer task ([79ab01e](https://github.com/labor-digital/typo3-search-and-index/commit/79ab01e601fdfd96b3a11aae08fc39eb97964380))
+
 ### [10.0.1](https://github.com/labor-digital/typo3-search-and-index/compare/v10.0.0...v10.0.1) (2022-04-29)
 
 
