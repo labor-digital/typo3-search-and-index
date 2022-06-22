@@ -26,6 +26,7 @@ use LaborDigital\T3ba\ExtConfig\ExtConfigContext;
 use LaborDigital\T3ba\ExtConfigHandler\Scheduler\Task\ConfigureTaskInterface;
 use LaborDigital\T3ba\ExtConfigHandler\Scheduler\Task\TaskConfigurator;
 use LaborDigital\T3sai\Core\Indexer\Indexer;
+use LaborDigital\T3sai\Exception\SearchAndIndexException;
 use TYPO3\CMS\Scheduler\Task\AbstractTask;
 
 class IndexerTask extends AbstractTask implements ConfigureTaskInterface
@@ -47,6 +48,18 @@ class IndexerTask extends AbstractTask implements ConfigureTaskInterface
     public function execute(): bool
     {
         $errors = $this->makeInstance(Indexer::class)->run();
+        
+        if (! empty($errors)) {
+            if ($this->logger) {
+                foreach ($errors as $error) {
+                    $this->logger->error($error);
+                }
+            }
+            
+            if ($this->cs()->typoContext->env()->isDev()) {
+                throw new SearchAndIndexException('Failed in indexer: ' . implode(', ', $errors));
+            }
+        }
         
         return empty($errors);
     }
