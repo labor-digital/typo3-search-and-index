@@ -84,7 +84,7 @@ class PageDataIndexer
         }
         
         $this->node->setTitle((string)$this->data[$column]);
-        foreach (array_unique($this->options['imageCol']) as $additionalColumn) {
+        foreach (array_unique($this->options['titleCol']) as $additionalColumn) {
             if ($additionalColumn === $column) {
                 continue;
             }
