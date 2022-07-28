@@ -32,6 +32,7 @@ use LaborDigital\T3sai\Search\Indexer\Page\PageContent\PageContentResolver;
 use LaborDigital\T3sai\Search\Indexer\Page\PageData\PageDataIndexer;
 use LaborDigital\T3sai\Search\Indexer\Page\PageData\PageDataResolver;
 use LaborDigital\T3sai\Search\Indexer\RecordIndexerInterface;
+use Neunerlei\Arrays\Arrays;
 use Neunerlei\Options\Options;
 use Psr\EventDispatcher\EventDispatcherInterface;
 
@@ -85,40 +86,65 @@ class PageIndexer implements RecordIndexerInterface
      * @param   array|null  $options
      *                              - rootPids array: By default, the indexer will start at the root pid of the domain's site,
      *                              but you can also add your own root pids to override that behaviour. T3BA PID References are supported here.
-     *                              - titleCol string (title): The db column where the title attribute should be read from
-     *                              - titleFallbackCol string (title): The db column where the title attribute should be read from if the main title column contained an empty value
-     *                              - descriptionCol string (description): The db column where the description should be read from
-     *                              - imageCol string (media): A file reference column which points to the media data that should be used as preview image
-     *                              - searchCols array (og_description, og_title, twitter_title, twitter_description):
+     *                              - titleCol array|string (title): The db columns where the title attribute should be read from
+     *                              - descriptionCol array|string (description): The db columns where the description should be read from
+     *                              - imageCol array|string (media): A file reference column which points to the media data that should be used as preview image
+     *                              - searchCols array|string (og_description, og_title, twitter_title, twitter_description):
      *                              A list of additional columns to load from the "pages" database table and add to the searchable content
+     *
+     *                              DEPRECATED:
+     *                             - titleFallbackCol string (title): Should be removed in v11, use an additional titleCol instead!
+     *                             The db column where the title attribute should be read from if the main title column contained an empty value
      *
      * @return void
      */
     public function setOptions(?array $options): void
     {
+        $listPreFilter = static function ($v) {
+            if (is_string($v)) {
+                return Arrays::makeFromStringList($v);
+            }
+            
+            return $v;
+        };
+        
         $this->options = Options::make($options ?? [], [
             'rootPids' => [
                 'type' => 'array',
                 'default' => [],
             ],
             'titleCol' => [
-                'type' => 'string',
-                'default' => 'title',
+                'type' => 'array',
+                'preFilter' => $listPreFilter,
+                'default' => ['title'],
             ],
             'titleFallbackCol' => [
                 'type' => 'string',
                 'default' => 'title',
+                'filter' => function ($v) {
+                    if ($v !== 'title') {
+                        trigger_error(
+                            'Deprecated usage of: ' . static::class . ' indexer options. "titleFallbackCol" is deprecated. Use an array for "titleCol" instead!',
+                            E_USER_DEPRECATED
+                        );
+                    }
+                    
+                    return $v;
+                },
             ],
             'descriptionCol' => [
-                'type' => 'string',
-                'default' => 'description',
+                'type' => 'array',
+                'preFilter' => $listPreFilter,
+                'default' => ['description'],
             ],
             'imageCol' => [
-                'type' => 'string',
-                'default' => 'media',
+                'type' => 'array',
+                'preFilter' => $listPreFilter,
+                'default' => ['media'],
             ],
             'searchCols' => [
                 'type' => 'array',
+                'preFilter' => $listPreFilter,
                 'default' => [
                     'og_description',
                     'og_title',
@@ -127,6 +153,9 @@ class PageIndexer implements RecordIndexerInterface
                 ],
             ],
         ]);
+        
+        $this->options['titleCol'][] = $this->options['titleFallbackCol'];
+        unset($this->options['titleFallbackCol']);
     }
     
     /**

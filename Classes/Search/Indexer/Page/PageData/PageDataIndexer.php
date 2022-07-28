@@ -77,17 +77,20 @@ class PageDataIndexer
     
     protected function mapTitle(): void
     {
-        $titleCol = $this->options['titleCol'];
-        $titleFallbackCol = $this->options['titleFallbackCol'];
+        $column = $this->resolveContentColumn($this->options['titleCol']);
         
-        $title = trim((string)$this->data[$titleCol]);
-        if (empty($title)) {
-            $title = trim((string)$this->data[$titleFallbackCol]);
-        } else {
-            $this->node->addContent(trim((string)$this->data[$titleFallbackCol]), 20);
+        if (! $column) {
+            return;
         }
         
-        $this->node->setTitle($title);
+        $this->node->setTitle((string)$this->data[$column]);
+        foreach (array_unique($this->options['imageCol']) as $additionalColumn) {
+            if ($additionalColumn === $column) {
+                continue;
+            }
+            
+            $this->node->addContent(trim((string)$this->data[$additionalColumn]), 20);
+        }
     }
     
     protected function mapSearchColumns(): void
@@ -103,7 +106,7 @@ class PageDataIndexer
     
     protected function mapMetaData(): void
     {
-        $descriptionCol = $this->options['descriptionCol'];
+        $descriptionCol = $this->resolveContentColumn($this->options['descriptionCol']);
         $this->node
             ->setDescription((string)($this->data[$descriptionCol] ?? ''))
             ->setTag('page')
@@ -120,18 +123,36 @@ class PageDataIndexer
     
     protected function mapImage(): void
     {
-        $imageCol = $this->options['imageCol'];
-        if (empty($this->data[$imageCol])) {
-            return;
-        }
-        
-        $this->node->setImage(
-            $this->falService->getFile(
+        foreach ($this->options['imageCol'] as $column) {
+            if (empty($this->data[$column])) {
+                continue;
+            }
+            
+            $mediaList = $this->falService->getFile(
                 (int)$this->data['uid'],
                 'pages',
-                $imageCol
-            )
-        );
+                $column,
+                false
+            );
+            
+            foreach ($mediaList as $media) {
+                if ($this->falService->getFileInfo($media)->isImage()) {
+                    $this->node->setImage($media);
+                    break 2;
+                }
+            }
+        }
+    }
+    
+    protected function resolveContentColumn(array $columns): ?string
+    {
+        foreach ($columns as $column) {
+            if (! empty($this->data[$column])) {
+                return $column;
+            }
+        }
+        
+        return null;
     }
     
 }
