@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [10.2.0](https://github.com/labor-digital/typo3-search-and-index/compare/v10.1.0...v10.2.0) (2022-07-28)
+
+
+### Features
+
+* **Indexer:** allow fallback columns in page indexer options ([070aeb9](https://github.com/labor-digital/typo3-search-and-index/commit/070aeb969d10befdb38d0ccc886a3e56b486fabe))
+
 ## [10.1.0](https://github.com/labor-digital/typo3-search-and-index/compare/v10.0.1...v10.1.0) (2022-06-22)
 
 
