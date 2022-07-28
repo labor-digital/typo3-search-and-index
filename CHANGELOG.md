@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [10.3.0](https://github.com/labor-digital/typo3-search-and-index/compare/v10.2.0...v10.3.0) (2022-07-28)
+
+
+### Features
+
+* make content separator (formerly [...]) configurable for each domain ([1e172ae](https://github.com/labor-digital/typo3-search-and-index/commit/1e172ae812a8b6c2223da5afc1edc1bc7ac7fabd))
+
+
+### Bug Fixes
+
+* **PageIndexer:** use correct col option for additional title content ([b271fcc](https://github.com/labor-digital/typo3-search-and-index/commit/b271fcccb1c5c7cde70d77d4e0cf0875496d60ea))
+
 ## [10.2.0](https://github.com/labor-digital/typo3-search-and-index/compare/v10.1.0...v10.2.0) (2022-07-28)
 
 
