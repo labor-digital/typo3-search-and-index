@@ -79,7 +79,11 @@ class SearchProcessor implements LookupResultProcessorInterface
                        ?? $this->findMatchingFuzzyContent($content, $fuzzyMatchWords)
                           ?? $this->findMatchingByLookingReallyHard($content, $matchWordLists);
             
-            $row['contentMatch'] = $this->extractMatchingContent($content, $request->getContentMatchLength());
+            $row['contentMatch'] = $this->extractMatchingContent(
+                $content,
+                $request->getContentMatchLength(),
+                $request->getDomainConfig()['contentSeparator'] ?? null
+            );
             $row['metaData'] = $this->unpackMetaData($row['meta_data'] ?? null);
             $out[] = $row;
         }
@@ -229,12 +233,18 @@ class SearchProcessor implements LookupResultProcessorInterface
     /**
      * Extracts the first possible content match from the given content string
      *
-     * @param   string  $content
-     * @param   int     $contentMatchLength
+     * @param   string       $content
+     * @param   int          $contentMatchLength
+     * @param   string|null  $contentSeparator
      *
      * @return string
+     * @todo $contentSeparator should be required in the next release
      */
-    protected function extractMatchingContent(string $content, int $contentMatchLength): string
+    protected function extractMatchingContent(
+        string $content,
+        int $contentMatchLength,
+        ?string $contentSeparator = null
+    ): string
     {
         if (! str_contains($content, '[match]')) {
             return '';
@@ -289,7 +299,7 @@ class SearchProcessor implements LookupResultProcessorInterface
             }
         }
         
-        $result = implode(' [...] ', $matchedContent);
+        $result = implode($contentSeparator ?? ' [...] ', $matchedContent);
         $result = trim(preg_replace('~^\[\.\.\.]|\[\.\.\.]$|\[\.\.\.]\\s+\[\.\.\.]~', '', $result));
         
         return '... ' . $result . ' ...';

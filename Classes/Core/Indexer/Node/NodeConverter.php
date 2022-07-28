@@ -112,19 +112,26 @@ class NodeConverter implements SingletonInterface
     {
         $this->validateTitle($node);
         
-        $textList = $this->generateTextList($node);
-        $wordList = $this->generateWordList($node, $textList);
+        $separatorBackup
+            = $this->textConverter->setContentSeparator($node->getDomainConfig()['contentSeparator'] ?? null);
         
-        $this->nerfWordList->learnWords($wordList);
-        
-        $nodeRow = $this->makeNodeRow($node, $textList, $wordList);
-        $wordRows = $this->makeWordRows($node, $wordList);
-        
-        $e = $this->eventDispatcher->dispatch(
-            new IndexNodeDbDataFilterEvent($node->getRequest(), $nodeRow, $wordRows)
-        );
-        
-        return [$e->getNodeRow(), $e->getWordRows()];
+        try {
+            $textList = $this->generateTextList($node);
+            $wordList = $this->generateWordList($node, $textList);
+            
+            $this->nerfWordList->learnWords($wordList);
+            
+            $nodeRow = $this->makeNodeRow($node, $textList, $wordList);
+            $wordRows = $this->makeWordRows($node, $wordList);
+            
+            $e = $this->eventDispatcher->dispatch(
+                new IndexNodeDbDataFilterEvent($node->getRequest(), $nodeRow, $wordRows)
+            );
+            
+            return [$e->getNodeRow(), $e->getWordRows()];
+        } finally {
+            $this->textConverter->setContentSeparator($separatorBackup);
+        }
     }
     
     protected function validateTitle(Node $node): void

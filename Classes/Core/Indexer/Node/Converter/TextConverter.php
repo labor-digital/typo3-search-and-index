@@ -26,6 +26,33 @@ namespace LaborDigital\T3sai\Core\Indexer\Node\Converter;
 class TextConverter
 {
     /**
+     * @var string
+     * @deprecated temporary implementation detail
+     */
+    protected $contentSeparator = ' [...] ';
+    
+    /**
+     * Defines the content separator, used to combine texts in the "mergeTexts" method.
+     *
+     * @param   string|null  $separator
+     *
+     * @return string Returns the separator that was active before setting the new one
+     * @see        mergeTexts
+     * @deprecated Should be a required parameter on mergeTexts instead!
+     */
+    public function setContentSeparator(?string $separator): string
+    {
+        if (! $separator) {
+            return $this->contentSeparator;
+        }
+        
+        $oldSeparator = $this->contentSeparator;
+        $this->contentSeparator = $separator;
+        
+        return $oldSeparator;
+    }
+    
+    /**
      * Expects an iterable list of arrays in which the first child is the text content
      * and the second child is the numeric priority in a range of 0 - 100
      *
@@ -59,6 +86,7 @@ class TextConverter
      * @param   array  ...$texts
      *
      * @return string
+     * @todo $contentSeparator should be a required parameter
      */
     public function mergeTexts(array ...$texts): string
     {
@@ -70,7 +98,7 @@ class TextConverter
             }
         }
         
-        return implode(' [...] ', $output);
+        return implode($this->contentSeparator, $output);
     }
     
     /**

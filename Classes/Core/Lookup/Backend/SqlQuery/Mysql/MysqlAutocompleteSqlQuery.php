@@ -93,6 +93,8 @@ class MysqlAutocompleteSqlQuery extends AbstractSqlQuery
      */
     protected function buildForNextWordAutoComplete(string $lastWord): string
     {
+        $contentSeparator = $this->request->getDomainConfig()['contentSeparator'] ?? ' [...] ';
+        
         $where = $this->wrapQueryWithRequestConstraints(
             $this->expr()->andX(
                 $this->expr()->orX(
@@ -102,8 +104,8 @@ class MysqlAutocompleteSqlQuery extends AbstractSqlQuery
                     $this->expr()->like('set_keywords', $this->q($lastWord . ' %'))
                 ),
                 // This will remove the content block separators
-                $this->expr()->notLike('content', $this->q('% ' . $lastWord . ' [...%')),
-                $this->expr()->notLike('content', $this->q($lastWord . ' [...%'))
+                $this->expr()->notLike('content', $this->q('% ' . $lastWord . $contentSeparator . '%')),
+                $this->expr()->notLike('content', $this->q($lastWord . $contentSeparator . '%'))
             ),
             SearchRepository::TABLE_NODES
         );

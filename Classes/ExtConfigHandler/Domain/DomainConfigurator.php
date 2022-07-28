@@ -74,6 +74,8 @@ class DomainConfigurator implements NoDiInterface
     
     protected $tagTranslations = [];
     
+    protected $contentSeparator = ' [...] ';
+    
     public function __construct(
         string $domainIdentifier,
         SiteConfigContext $context,
@@ -233,6 +235,50 @@ class DomainConfigurator implements NoDiInterface
         return $this->tagTranslations;
     }
     
+    /**
+     * @return \LaborDigital\T3ba\ExtConfig\SiteBased\SiteConfigContext
+     */
+    public function getContext(): SiteConfigContext
+    {
+        return $this->context;
+    }
+    
+    /**
+     * @param   \LaborDigital\T3ba\ExtConfig\SiteBased\SiteConfigContext  $context
+     *
+     * @return DomainConfigurator
+     */
+    public function setContext(SiteConfigContext $context): DomainConfigurator
+    {
+        $this->context = $context;
+        
+        return $this;
+    }
+    
+    /**
+     * Returns the currently set content separator, used to combine multiple indexed contents of the same node into one string.
+     *
+     * @return string
+     */
+    public function getContentSeparator(): string
+    {
+        return $this->contentSeparator;
+    }
+    
+    /**
+     * Sets the currently set content separator, used to combine multiple indexed contents of the same node into one string.
+     *
+     * @param   string  $contentSeparator
+     *
+     * @return DomainConfigurator
+     */
+    public function setContentSeparator(string $contentSeparator): DomainConfigurator
+    {
+        $this->contentSeparator = $contentSeparator;
+        
+        return $this;
+    }
+    
     public function finish(ConfigState $state): void
     {
         $state->setAsJson($this->domainIdentifier, [
@@ -247,6 +293,7 @@ class DomainConfigurator implements NoDiInterface
                 'contentElement' => $this->contentElementIndexers->getAll(),
             ],
             'siteMap' => $this->siteMapConfig->asArray(),
+            'contentSeparator' => $this->contentSeparator,
         ]);
     }
 }
