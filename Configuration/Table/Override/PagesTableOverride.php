@@ -49,7 +49,7 @@ class PagesTableOverride implements ConfigureTcaTableInterface, TcaTableNameProv
              ->addMultiple(static function () use ($type) {
                  $type->getField('sai_sitemap')
                       ->setLabel('t3saibe.t.pages.sitemap')
-                      ->applyPreset()->checkbox(['toggle', 'inverted']);
+                      ->applyPreset()->checkbox(['toggle', 'inverted'])->setDefault(1);
             
                  $type->getField('no_search')
                       ->setLabel('t3saibe.t.pages.index')
